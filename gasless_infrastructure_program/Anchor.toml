@@ -1,0 +1,15 @@
+[toolchain]
+
+[features]
+resolution = true
+skip-lint = false
+
+[programs.devnet]
+gasless_infrastructure = "55NZkybMneNX4a1C9dDTtWUq1iv3NRprpgMxRSjRoUSX"
+
+[registry]
+url = "https://api.apr.dev"
+
+[provider]
+cluster = "localnet"
+wallet = "~/.config/solana/admin.json"

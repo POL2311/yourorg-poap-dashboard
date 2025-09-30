@@ -1,0 +1,21 @@
+GASLESS INFRASTRUCTURE DEPLOYMENT INFO
+=====================================
+
+Program ID: 7QNe37UmuXqs84dbWQQ5ezs2PmREWg9QM98DbFTQEGi9
+Admin Wallet: 9jDfe95nCzZrNRDvX5UL3NYVgAA1ryoXYYudt5k9qxsG
+Relayer Wallet: 9YSMfRjduNRAMrRnz5ZHzCz597hLH8T1C3nFthbqJjnx
+Master Treasury: 33RNueB5yNxFVbSQ2nhDfuhFxhCaYq7v3NkwtdqzjGSk
+
+Deployment Date: Sun Sep 28 14:34:53 CST 2025
+Network: Devnet
+RPC: https://api.devnet.solana.com
+
+Services:
+- Backend: http://localhost:3000
+- Dashboard: http://localhost:5173
+- NFT Example: http://localhost:5174
+
+Next Steps:
+1. Run: ./start-services.sh
+2. Run: node initialize-protocol.js
+3. Test at: http://localhost:5174
