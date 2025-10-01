@@ -1,0 +1,59 @@
+🧪 TESTING GASLESS INFRASTRUCTURE
+=================================
+
+🔍 VERIFICANDO SERVICIOS BASE
+============================
+[0;34m[INFO] Testing MongoDB Connection (timeout: 10s)...[0m
+[0;32m[TEST] ✅ MongoDB Connection: OK[0m
+[0;34m[INFO] Testing Redis Connection (timeout: 5s)...[0m
+[0;32m[TEST] ✅ Redis Connection: OK[0m
+
+🌐 VERIFICANDO SERVICIOS WEB
+============================
+[0;34m[INFO] Testing Backend Health...[0m
+[0;32m[TEST] ✅ Backend Health: OK (Status: 200)[0m
+[0;34m[INFO] Testing Dashboard...[0m
+[0;32m[TEST] ✅ Dashboard: OK (Status: 200)[0m
+[0;34m[INFO] Testing NFT Example...[0m
+[0;32m[TEST] ✅ NFT Example: OK (Status: 200)[0m
+
+🔗 VERIFICANDO API ENDPOINTS
+============================
+[0;34m[INFO] Testing API - Health Check...[0m
+[0;32m[TEST] ✅ API - Health Check: OK (Status: 200)[0m
+[0;34m[INFO] Testing protected endpoints...[0m
+[0;31m[ERROR] ❌ API Authentication: FAIL (Expected 401/403, got )[0m
+
+💰 VERIFICANDO BALANCES SOLANA
+==============================
+[0;34m[INFO] Checking Admin balance...[0m
+[0;31m[ERROR] ❌ Admin Balance: Insufficient or error[0m
+[0;34m[INFO] Checking Relayer balance...[0m
+[0;31m[ERROR] ❌ Relayer Balance: Insufficient or error[0m
+[0;34m[INFO] Checking Master Treasury balance...[0m
+[0;31m[ERROR] ❌ Master Treasury Balance: Insufficient or error[0m
+
+📊 VERIFICANDO LOGS
+==================
+[0;34m[INFO] Checking log files...[0m
+[0;32m[TEST] ✅ backend: No errors in logs[0m
+[1;33m[WARN] relayer:        3 errors found in logs[0m
+[0;32m[TEST] ✅ dashboard: No errors in logs[0m
+[1;33m[WARN] nft-example:       22 errors found in logs[0m
+
+🎯 RESULTADOS FINALES
+====================
+
+📈 Tests ejecutados: 11
+✅ Tests pasados: 6
+❌ Tests fallidos: 5
+📊 Tasa de éxito: 54.5%
+
+[0;31m❌ SISTEMA CON PROBLEMAS SIGNIFICATIVOS[0m
+Muchos tests fallaron. Revisa los logs y configuración.
+
+📄 Para más detalles:
+   - Logs: tail -f logs/[service].log
+   - Configuración: cat deployment-info.txt
+   - Reiniciar: ./stop-services.sh && ./start-services.sh
+[0;32m[TEST] 📄 Resultados guardados en test-results.txt[0m

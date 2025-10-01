@@ -1,0 +1,12 @@
+set -e
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+
+BIN="$ROOT/solana/target/release/cargo-build-sbf"
+[[ -x "$BIN" ]] || BIN="$ROOT/solana/target/debug/cargo-build-sbf"
+
+SDK="$ROOT/solana/sdk/sbf"
+
+[[ "${1-}" == "build-sbf" ]] && shift
+
+exec "$BIN" --sbf-sdk "$SDK" "$@"
