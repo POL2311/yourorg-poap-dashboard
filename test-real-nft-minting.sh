@@ -1,7 +1,7 @@
 #!/bin/bash
 
-echo "🧪 TESTING REAL NFT MINTING SYSTEM"
-echo "=================================="
+echo "🧪 TESTING REAL NFT MINTING SYSTEM (FIXED)"
+echo "=========================================="
 
 # Colores
 GREEN='\033[0;32m'
@@ -62,14 +62,16 @@ else
     error "❌ Relayer stats failed"
 fi
 
-# Test 3: Simular minteo real de NFT
+# Test 3: Simular minteo real de NFT con wallet válida
 info "Test 3: Simulando minteo real de NFT..."
-FAKE_WALLET="11111111111111111111111111111112"
 
-echo "🎨 Intentando mintear NFT real para wallet: $FAKE_WALLET"
+# Usar una wallet válida de Solana (esta es la wallet del System Program)
+VALID_WALLET="11111111111111111111111111111111"
+
+echo "🎨 Intentando mintear NFT real para wallet VÁLIDA: $VALID_WALLET"
 
 MINT_RESPONSE=$(curl -s -X POST -H "Content-Type: application/json" \
-    -d "{\"userPublicKey\":\"$FAKE_WALLET\"}" \
+    -d "{\"userPublicKey\":\"$VALID_WALLET\"}" \
     "http://localhost:3000/api/nft/claim-magical" 2>/dev/null)
 
 echo "📦 Response del minteo:"
@@ -110,6 +112,34 @@ else
     echo "Error response: $MINT_RESPONSE"
 fi
 
+# Test 4: Probar con wallet del usuario real
+info "Test 4: Probando con wallet de usuario real..."
+
+# Obtener wallet del usuario actual
+if command -v solana >/dev/null 2>&1; then
+    USER_WALLET=$(solana-keygen pubkey ~/.config/solana/id.json 2>/dev/null)
+    if [ -n "$USER_WALLET" ]; then
+        echo "🎨 Intentando mintear NFT para tu wallet: $USER_WALLET"
+        
+        USER_MINT_RESPONSE=$(curl -s -X POST -H "Content-Type: application/json" \
+            -d "{\"userPublicKey\":\"$USER_WALLET\"}" \
+            "http://localhost:3000/api/nft/claim-magical" 2>/dev/null)
+        
+        if echo "$USER_MINT_RESPONSE" | grep -q '"success":true'; then
+            log "🎉 ¡NFT MINTEADO PARA TU WALLET!"
+            
+            USER_NFT_MINT=$(echo "$USER_MINT_RESPONSE" | grep -o '"nftMint":"[^"]*"' | cut -d'"' -f4)
+            USER_TX_SIGNATURE=$(echo "$USER_MINT_RESPONSE" | grep -o '"transactionSignature":"[^"]*"' | cut -d'"' -f4)
+            
+            echo "   🎨 Tu NFT Mint: $USER_NFT_MINT"
+            echo "   📦 Tu Transaction: $USER_TX_SIGNATURE"
+            echo "   💡 Revisa tu wallet para ver el NFT!"
+        else
+            warn "⚠️  Minteo para tu wallet falló: $USER_MINT_RESPONSE"
+        fi
+    fi
+fi
+
 echo ""
 echo "🎯 RESUMEN DE TESTS"
 echo "=================="
@@ -124,7 +154,7 @@ if echo "$MINT_RESPONSE" | grep -q '"success":true'; then
     echo "🚀 Para probar con wallet real:"
     echo "   1. Ir a http://localhost:5174"
     echo "   2. Conectar wallet (Phantom, Solflare)"
-    echo "   3. Click en 'Mint Real NFT (Token-2022)'"
+    echo "   3. Click en 'Mint Real NFT'"
     echo "   4. ¡Ver el NFT aparecer en tu wallet!"
     echo ""
     echo "💡 El NFT será un Token-2022 con metadata completa"

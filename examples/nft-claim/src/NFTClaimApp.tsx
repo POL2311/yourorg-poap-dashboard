@@ -93,7 +93,6 @@ function RealNFTClaimSection() {
   const [isLoading, setIsLoading] = useState(false)
   const [claimedNFTs, setClaimedNFTs] = useState<any[]>([])
   const [relayerStats, setRelayerStats] = useState<any>(null)
-  const [claimMode, setClaimMode] = useState<'magical' | 'signature'>('magical')
 
   // Cargar estadísticas del relayer
   const loadRelayerStats = useCallback(async () => {
@@ -124,7 +123,7 @@ function RealNFTClaimSection() {
     try {
       console.log('🎯 Starting REAL NFT mint for:', publicKey.toString())
 
-      // ✨ LLAMADA PARA MINTEO REAL DE NFT
+      // ✨ LLAMADA DIRECTA AL ENDPOINT CORRECTO
       const response = await axios.post(`${apiUrl}/api/nft/claim-magical`, {
         userPublicKey: publicKey.toString()
       })
