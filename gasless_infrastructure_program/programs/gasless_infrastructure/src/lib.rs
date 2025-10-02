@@ -10,7 +10,7 @@ pub use instructions::*;
 pub use state::*;
 pub use error::*;
 
-declare_id!("55NZkybMneNX4a1C9dDTtWUq1iv3NRprpgMxRSjRoUSX");
+declare_id!("49LhAwtW2UEbaLVGbZkgniT7XFGfFXMDnTUsboojgmQS");
 
 #[program]
 pub mod gasless_infrastructure {

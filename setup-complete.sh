@@ -3,377 +3,470 @@
 echo "🚀 GASLESS INFRASTRUCTURE - SETUP COMPLETO"
 echo "=========================================="
 
-# Colores para output
-RED='\033[0;31m'
+# Colores
 GREEN='\033[0;32m'
+RED='\033[0;31m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+PURPLE='\033[0;35m'
+NC='\033[0m'
 
-# Función para logging
 log() {
-    echo -e "${GREEN}[$(date +'%Y-%m-%d %H:%M:%S')] $1${NC}"
-}
-
-warn() {
-    echo -e "${YELLOW}[$(date +'%Y-%m-%d %H:%M:%S')] ⚠️  $1${NC}"
+    echo -e "${GREEN}[SUCCESS] $1${NC}"
 }
 
 error() {
-    echo -e "${RED}[$(date +'%Y-%m-%d %H:%M:%S')] ❌ $1${NC}"
+    echo -e "${RED}[ERROR] $1${NC}"
+    exit 1
 }
 
-# Verificar si estamos en el directorio correcto
-if [ ! -f "gasless_infrastructure_program/Anchor.toml" ]; then
-    error "No se encuentra el proyecto Anchor. Asegúrate de estar en el directorio correcto."
-    exit 1
+warn() {
+    echo -e "${YELLOW}[WARN] $1${NC}"
+}
+
+info() {
+    echo -e "${BLUE}[INFO] $1${NC}"
+}
+
+step() {
+    echo -e "${PURPLE}[STEP] $1${NC}"
+}
+
+# Verificar que estamos en el directorio correcto
+if [ ! -d "gasless_infrastructure_program" ]; then
+    error "Directorio gasless_infrastructure_program no encontrado. Ejecuta desde el directorio raíz del proyecto."
 fi
 
-log "Iniciando setup completo del sistema gasless..."
+# Hacer scripts ejecutables
+chmod +x setup-environment.sh
+chmod +x deploy-program.sh
 
-# 1. INSTALAR DEPENDENCIAS
-log "📦 Paso 1: Instalando dependencias del sistema..."
+echo ""
+step "PASO 1: Configurando ambiente de desarrollo"
+echo "============================================"
+./setup-environment.sh
 
-# Verificar Node.js
-if ! command -v node &> /dev/null; then
-    log "Instalando Node.js..."
-    curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-    sudo apt-get install -y nodejs
+if [ $? -ne 0 ]; then
+    error "Falló la configuración del ambiente"
 fi
 
-# Verificar Rust
-if ! command -v rustc &> /dev/null; then
-    log "Instalando Rust..."
-    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-    source ~/.cargo/env
+echo ""
+step "PASO 2: Building y deploying programa Solana"
+echo "============================================"
+./deploy-program.sh
+
+if [ $? -ne 0 ]; then
+    error "Falló el deployment del programa"
 fi
 
-# Verificar Solana CLI
-if ! command -v solana &> /dev/null; then
-    log "Instalando Solana CLI..."
-    sh -c "$(curl -sSfL https://release.solana.com/v1.17.0/install)"
-    export PATH="/home/$USER/.local/share/solana/install/active_release/bin:$PATH"
-    echo 'export PATH="/home/$USER/.local/share/solana/install/active_release/bin:$PATH"' >> ~/.bashrc
+echo ""
+step "PASO 3: Instalando dependencias de Node.js"
+echo "==========================================="
+
+# Backend
+if [ -d "backend" ]; then
+    info "Instalando dependencias del backend..."
+    cd backend
+    npm install
+    cd ..
+    log "✅ Backend dependencies instaladas"
 fi
 
-# Verificar Anchor
-if ! command -v anchor &> /dev/null; then
-    log "Instalando Anchor..."
-    cargo install --git https://github.com/coral-xyz/anchor avm --locked --force
-    avm install latest
-    avm use latest
+# Relayer
+if [ -d "relayer" ]; then
+    info "Instalando dependencias del relayer..."
+    cd relayer
+    npm install
+    cd ..
+    log "✅ Relayer dependencies instaladas"
 fi
 
-# 2. CONFIGURAR SOLANA
-log "🔧 Paso 2: Configurando Solana..."
-
-# Configurar para devnet
-solana config set --url https://api.devnet.solana.com
-
-# Crear keypair si no existe
-if [ ! -f ~/.config/solana/id.json ]; then
-    log "Creando keypair de admin..."
-    solana-keygen new --outfile ~/.config/solana/id.json --no-bip39-passphrase
+# Dashboard
+if [ -d "dashboard" ]; then
+    info "Instalando dependencias del dashboard..."
+    cd dashboard
+    npm install
+    cd ..
+    log "✅ Dashboard dependencies instaladas"
 fi
 
-# Obtener SOL
-log "💰 Obteniendo SOL para admin..."
-solana airdrop 2 || warn "No se pudo obtener SOL automáticamente"
-
-# 3. INSTALAR BASES DE DATOS
-log "💾 Paso 3: Instalando bases de datos..."
-
-# MongoDB
-if ! command -v mongod &> /dev/null; then
-    log "Instalando MongoDB..."
-    sudo apt update
-    sudo apt install -y mongodb
+# SDK
+if [ -d "sdk" ]; then
+    info "Instalando dependencias del SDK..."
+    cd sdk
+    npm install
+    npm run build
+    cd ..
+    log "✅ SDK dependencies instaladas y built"
 fi
 
-# Redis
-if ! command -v redis-server &> /dev/null; then
-    log "Instalando Redis..."
-    sudo apt install -y redis-server
+# NFT Example
+if [ -d "examples/nft-claim" ]; then
+    info "Instalando dependencias del ejemplo NFT..."
+    cd examples/nft-claim
+    npm install
+    cd ../..
+    log "✅ NFT Example dependencies instaladas"
 fi
 
-# Iniciar servicios
-sudo systemctl start mongodb || warn "No se pudo iniciar MongoDB"
-sudo systemctl start redis-server || warn "No se pudo iniciar Redis"
+echo ""
+step "PASO 4: Configurando variables de entorno"
+echo "========================================="
 
-# 4. BUILD Y DEPLOY DEL PROGRAMA
-log "🔗 Paso 4: Building y deploying programa Solana..."
-
-cd gasless_infrastructure_program
-
-# Build
-log "Building programa..."
-anchor build
-
-# Deploy
-log "Deploying programa..."
-DEPLOY_OUTPUT=$(anchor deploy 2>&1)
-echo "$DEPLOY_OUTPUT"
-
-# Extraer Program ID
-PROGRAM_ID=$(echo "$DEPLOY_OUTPUT" | grep -o 'Program Id: [A-Za-z0-9]*' | cut -d' ' -f3)
-
-if [ -z "$PROGRAM_ID" ]; then
-    error "No se pudo obtener el Program ID del deploy"
-    exit 1
+# Leer información de deployment
+if [ -f "deployment-info.txt" ]; then
+    PROGRAM_ID=$(grep "Program ID:" deployment-info.txt | cut -d' ' -f3)
+    ADMIN_WALLET=$(grep "Admin Wallet:" deployment-info.txt | cut -d' ' -f3)
+    RELAYER_WALLET=$(grep "Relayer Wallet:" deployment-info.txt | cut -d' ' -f3)
+    MASTER_TREASURY=$(grep "Master Treasury:" deployment-info.txt | cut -d' ' -f3)
+    
+    info "Program ID: $PROGRAM_ID"
+    info "Admin Wallet: $ADMIN_WALLET"
+    info "Relayer Wallet: $RELAYER_WALLET"
+    info "Master Treasury: $MASTER_TREASURY"
+else
+    error "deployment-info.txt no encontrado"
 fi
 
-log "✅ Programa deployado con ID: $PROGRAM_ID"
-
-cd ..
-
-# 5. CREAR KEYPAIRS PARA RELAYER
-log "🔑 Paso 5: Creando keypairs para relayer..."
-
-mkdir -p keys
-
-# Relayer keypair
-if [ ! -f keys/relayer-keypair.json ]; then
-    solana-keygen new --outfile keys/relayer-keypair.json --no-bip39-passphrase
-fi
-
-# Master treasury keypair
-if [ ! -f keys/master-treasury-keypair.json ]; then
-    solana-keygen new --outfile keys/master-treasury-keypair.json --no-bip39-passphrase
-fi
-
-# Obtener claves públicas
-ADMIN_PUBKEY=$(solana-keygen pubkey ~/.config/solana/id.json)
-RELAYER_PUBKEY=$(solana-keygen pubkey keys/relayer-keypair.json)
-MASTER_TREASURY_PUBKEY=$(solana-keygen pubkey keys/master-treasury-keypair.json)
-
-# Obtener SOL para las wallets
-log "💰 Obteniendo SOL para relayer y master treasury..."
-solana airdrop 2 $RELAYER_PUBKEY || warn "No se pudo obtener SOL para relayer"
-solana airdrop 5 $MASTER_TREASURY_PUBKEY || warn "No se pudo obtener SOL para master treasury"
-
-# 6. CONFIGURAR BACKEND
-log "🖥 Paso 6: Configurando backend..."
-
-cd backend
-
-# Instalar dependencias
-npm install
-
-# Crear .env
-cat > .env << EOF
+# Configurar backend .env
+if [ -d "backend" ]; then
+    cat > backend/.env << EOF
+# Gasless Infrastructure Backend Configuration
 PORT=3000
 NODE_ENV=development
 
 # Solana Configuration
 SOLANA_RPC_URL=https://api.devnet.solana.com
 PROGRAM_ID=$PROGRAM_ID
-USDC_MINT=4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU
+ADMIN_WALLET=$ADMIN_WALLET
+MASTER_TREASURY_PRIVATE_KEY=$(cat keys/master-treasury-keypair.json | tr -d '\n' | tr -d ' ')
 
-# Database
-MONGODB_URI=mongodb://localhost:27017/gasless_infrastructure
+# Database (optional)
+MONGODB_URI=mongodb://localhost:27017/gasless
 REDIS_URL=redis://localhost:6379
 
 # Security
-JWT_SECRET=gasless_jwt_secret_$(openssl rand -hex 16)
-API_KEY_SECRET=gasless_api_secret_$(openssl rand -hex 16)
+JWT_SECRET=gasless_infrastructure_jwt_secret_$(date +%s)
 
-# CORS
-ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173,http://localhost:5174
+# Services
+DEFAULT_SERVICE_ID=nft-claim-example
+USDC_MINT=EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v
+
+# Logging
+LOG_LEVEL=info
 EOF
+    log "✅ Backend .env configurado"
+fi
 
-# Build
-npm run build
+# Configurar relayer .env
+if [ -d "relayer" ]; then
+    cat > relayer/.env << EOF
+# Gasless Infrastructure Relayer Configuration
+NODE_ENV=development
 
-cd ..
-
-# 7. CONFIGURAR RELAYER
-log "⚡ Paso 7: Configurando relayer..."
-
-cd relayer
-
-# Instalar dependencias
-npm install
-
-# Convertir keypairs a base58 para el .env
-RELAYER_PRIVATE_KEY=$(node -e "
-const fs = require('fs');
-const bs58 = require('bs58');
-const keypair = JSON.parse(fs.readFileSync('../keys/relayer-keypair.json'));
-console.log(bs58.encode(Uint8Array.from(keypair)));
-")
-
-MASTER_TREASURY_PRIVATE_KEY=$(node -e "
-const fs = require('fs');
-const bs58 = require('bs58');
-const keypair = JSON.parse(fs.readFileSync('../keys/master-treasury-keypair.json'));
-console.log(bs58.encode(Uint8Array.from(keypair)));
-")
-
-# Crear .env
-cat > .env << EOF
 # Solana Configuration
 SOLANA_RPC_URL=https://api.devnet.solana.com
 PROGRAM_ID=$PROGRAM_ID
-
-# Keypairs (MANTENER SEGURAS)
-RELAYER_PRIVATE_KEY=$RELAYER_PRIVATE_KEY
-MASTER_TREASURY_PRIVATE_KEY=$MASTER_TREASURY_PRIVATE_KEY
+RELAYER_PRIVATE_KEY=$(cat keys/relayer-keypair.json | tr -d '\n' | tr -d ' ')
+MASTER_TREASURY_PRIVATE_KEY=$(cat keys/master-treasury-keypair.json | tr -d '\n' | tr -d ' ')
 
 # API Configuration
 API_URL=http://localhost:3000
-RELAYER_API_KEY=relayer_$(openssl rand -hex 16)
+RELAYER_API_KEY=relayer_api_key_$(date +%s)
 
 # Processing Configuration
+PERMIT_POLL_INTERVAL=2000
 MAX_RETRIES=3
-PROCESSING_INTERVAL=5
 BATCH_SIZE=10
 
-# Balance Monitoring
-MIN_RELAYER_BALANCE=0.1
-MIN_MASTER_TREASURY_BALANCE=1
-LOW_BALANCE_ALERT_THRESHOLD=0.5
+# Database (optional)
+MONGODB_URI=mongodb://localhost:27017/gasless
+REDIS_URL=redis://localhost:6379
+
+# Logging
+LOG_LEVEL=info
 EOF
+    log "✅ Relayer .env configurado"
+fi
 
-cd ..
-
-# 8. CONFIGURAR DASHBOARD
-log "📱 Paso 8: Configurando dashboard..."
-
-cd dashboard
-
-# Instalar dependencias
-npm install
-
-# Crear .env
-cat > .env << EOF
-REACT_APP_API_URL=http://localhost:3000
-REACT_APP_SOLANA_NETWORK=devnet
-REACT_APP_PROGRAM_ID=$PROGRAM_ID
+# Configurar dashboard .env
+if [ -d "dashboard" ]; then
+    cat > dashboard/.env << EOF
+# Gasless Infrastructure Dashboard Configuration
+VITE_API_URL=http://localhost:3000
+VITE_SOLANA_RPC_URL=https://api.devnet.solana.com
+VITE_PROGRAM_ID=$PROGRAM_ID
+VITE_NETWORK=devnet
 EOF
+    log "✅ Dashboard .env configurado"
+fi
 
-cd ..
-
-# 9. CONFIGURAR EJEMPLO NFT
-log "🎨 Paso 9: Configurando ejemplo NFT..."
-
-cd examples/nft-claim
-
-# Instalar dependencias
-npm install
-
-# Crear .env
-cat > .env << EOF
-REACT_APP_GASLESS_API_URL=http://localhost:3000
-REACT_APP_GASLESS_SERVICE_ID=nft-claim-demo
-REACT_APP_GASLESS_API_KEY=demo_api_key_123
-REACT_APP_SOLANA_NETWORK=devnet
+# Configurar NFT example .env
+if [ -d "examples/nft-claim" ]; then
+    cat > examples/nft-claim/.env << EOF
+# NFT Claim Example Configuration
+VITE_GASLESS_API_URL=http://localhost:3000
+VITE_GASLESS_SERVICE_ID=nft-claim-example
+VITE_SOLANA_RPC_URL=https://api.devnet.solana.com
+VITE_PROGRAM_ID=$PROGRAM_ID
+VITE_NETWORK=devnet
 EOF
+    log "✅ NFT Example .env configurado"
+fi
 
-cd ../..
+echo ""
+step "PASO 5: Inicializando protocolo en blockchain"
+echo "============================================="
 
-# 10. CREAR SCRIPT DE INICIALIZACIÓN DEL PROTOCOLO
-log "🔧 Paso 10: Creando script de inicialización..."
+# Instalar dependencias para el script de inicialización
+npm install @solana/web3.js @coral-xyz/anchor
 
-cat > initialize-protocol.js << EOF
-const { Connection, PublicKey, Keypair, SystemProgram } = require('@solana/web3.js');
-const { Program, AnchorProvider, Wallet, BN } = require('@coral-xyz/anchor');
-const fs = require('fs');
+# Ejecutar inicialización
+node initialize-protocol.js
 
-async function initializeProtocol() {
-    try {
-        console.log('🚀 Inicializando protocolo gasless...');
-        
-        const connection = new Connection('https://api.devnet.solana.com', 'confirmed');
-        const programId = new PublicKey('$PROGRAM_ID');
-        
-        // Cargar keypairs
-        const adminKeypair = Keypair.fromSecretKey(
-            new Uint8Array(JSON.parse(fs.readFileSync(process.env.HOME + '/.config/solana/id.json')))
-        );
-        
-        const masterTreasuryKeypair = Keypair.fromSecretKey(
-            new Uint8Array(JSON.parse(fs.readFileSync('./keys/master-treasury-keypair.json')))
-        );
-        
-        const relayerKeypair = Keypair.fromSecretKey(
-            new Uint8Array(JSON.parse(fs.readFileSync('./keys/relayer-keypair.json')))
-        );
-        
-        console.log('👤 Admin:', adminKeypair.publicKey.toString());
-        console.log('💰 Master Treasury:', masterTreasuryKeypair.publicKey.toString());
-        console.log('⚡ Relayer:', relayerKeypair.publicKey.toString());
-        
-        // Aquí irían las llamadas al programa para inicializar
-        // Por ahora solo mostramos la información
-        
-        console.log('✅ Configuración lista para inicializar protocolo');
-        console.log('📝 Ejecuta las transacciones de inicialización manualmente o implementa aquí');
-        
-    } catch (error) {
-        console.error('❌ Error:', error);
-    }
+if [ $? -ne 0 ]; then
+    error "Falló la inicialización del protocolo"
+fi
+
+echo ""
+step "PASO 6: Creando scripts de gestión"
+echo "=================================="
+
+# Script para iniciar servicios
+cat > start-services.sh << 'EOF'
+#!/bin/bash
+
+echo "🚀 INICIANDO SERVICIOS GASLESS INFRASTRUCTURE"
+echo "============================================="
+
+# Crear directorio de logs
+mkdir -p logs
+
+# Función para iniciar servicio en background
+start_service() {
+    local name=$1
+    local dir=$2
+    local command=$3
+    local port=$4
+    
+    echo "🔄 Iniciando $name..."
+    
+    cd $dir
+    nohup $command > ../logs/$name.log 2>&1 &
+    local pid=$!
+    echo $pid > ../logs/$name.pid
+    cd ..
+    
+    echo "✅ $name iniciado (PID: $pid, Puerto: $port)"
+    echo "   Logs: tail -f logs/$name.log"
 }
 
-initializeProtocol();
+# Iniciar backend
+if [ -d "backend" ]; then
+    start_service "backend" "backend" "npm run dev" "3000"
+fi
+
+# Iniciar relayer
+if [ -d "relayer" ]; then
+    start_service "relayer" "relayer" "npm run dev" "N/A"
+fi
+
+# Iniciar dashboard
+if [ -d "dashboard" ]; then
+    start_service "dashboard" "dashboard" "npm run dev" "5173"
+fi
+
+# Iniciar NFT example
+if [ -d "examples/nft-claim" ]; then
+    start_service "nft-example" "examples/nft-claim" "npm run dev" "5174"
+fi
+
+echo ""
+echo "🎉 TODOS LOS SERVICIOS INICIADOS"
+echo "==============================="
+echo ""
+echo "📱 URLs disponibles:"
+echo "   Backend API: http://localhost:3000"
+echo "   Dashboard: http://localhost:5173"
+echo "   NFT Example: http://localhost:5174"
+echo ""
+echo "📊 Para monitorear:"
+echo "   ./utils.sh status"
+echo "   ./utils.sh logs"
+echo ""
+echo "🛑 Para detener:"
+echo "   ./stop-services.sh"
+echo ""
 EOF
 
-# 11. RESUMEN FINAL
-log "✅ SETUP COMPLETO!"
+# Script para detener servicios
+cat > stop-services.sh << 'EOF'
+#!/bin/bash
+
+echo "🛑 DETENIENDO SERVICIOS GASLESS INFRASTRUCTURE"
+echo "=============================================="
+
+stop_service() {
+    local name=$1
+    local pidfile="logs/$name.pid"
+    
+    if [ -f "$pidfile" ]; then
+        local pid=$(cat "$pidfile")
+        if kill -0 "$pid" 2>/dev/null; then
+            echo "🔄 Deteniendo $name (PID: $pid)..."
+            kill "$pid"
+            rm "$pidfile"
+            echo "✅ $name detenido"
+        else
+            echo "⚠️  $name ya estaba detenido"
+            rm "$pidfile"
+        fi
+    else
+        echo "⚠️  PID file para $name no encontrado"
+    fi
+}
+
+# Detener servicios
+stop_service "backend"
+stop_service "relayer"
+stop_service "dashboard"
+stop_service "nft-example"
 
 echo ""
-echo "🎉 GASLESS INFRASTRUCTURE CONFIGURADO EXITOSAMENTE"
-echo "=================================================="
+echo "✅ TODOS LOS SERVICIOS DETENIDOS"
 echo ""
-echo "📊 Información del sistema:"
-echo "   Program ID: $PROGRAM_ID"
-echo "   Admin Wallet: $ADMIN_PUBKEY"
-echo "   Relayer Wallet: $RELAYER_PUBKEY"
-echo "   Master Treasury: $MASTER_TREASURY_PUBKEY"
-echo ""
-echo "💰 Balances:"
-echo "   Admin: $(solana balance $ADMIN_PUBKEY 2>/dev/null || echo 'Error obteniendo balance')"
-echo "   Relayer: $(solana balance $RELAYER_PUBKEY 2>/dev/null || echo 'Error obteniendo balance')"
-echo "   Master Treasury: $(solana balance $MASTER_TREASURY_PUBKEY 2>/dev/null || echo 'Error obteniendo balance')"
-echo ""
-echo "🚀 Próximos pasos:"
-echo "   1. Ejecuta: ./start-services.sh (para iniciar todos los servicios)"
-echo "   2. Ejecuta: node initialize-protocol.js (para inicializar el protocolo)"
-echo "   3. Ve a http://localhost:5174 para probar el ejemplo NFT"
-echo ""
-echo "📁 Archivos importantes creados:"
-echo "   - keys/relayer-keypair.json"
-echo "   - keys/master-treasury-keypair.json"
-echo "   - backend/.env"
-echo "   - relayer/.env"
-echo "   - dashboard/.env"
-echo "   - examples/nft-claim/.env"
-echo "   - initialize-protocol.js"
-echo ""
-
-# Guardar información en archivo
-cat > deployment-info.txt << EOF
-GASLESS INFRASTRUCTURE DEPLOYMENT INFO
-=====================================
-
-Program ID: $PROGRAM_ID
-Admin Wallet: $ADMIN_PUBKEY
-Relayer Wallet: $RELAYER_PUBKEY
-Master Treasury: $MASTER_TREASURY_PUBKEY
-
-Deployment Date: $(date)
-Network: Devnet
-RPC: https://api.devnet.solana.com
-
-Services:
-- Backend: http://localhost:3000
-- Dashboard: http://localhost:5173
-- NFT Example: http://localhost:5174
-
-Next Steps:
-1. Run: ./start-services.sh
-2. Run: node initialize-protocol.js
-3. Test at: http://localhost:5174
 EOF
 
-log "📄 Información guardada en deployment-info.txt"
-log "🎯 Setup completo! Ejecuta ./start-services.sh para iniciar todos los servicios."
+# Script de utilidades
+cat > utils.sh << 'EOF'
+#!/bin/bash
+
+case "$1" in
+    "status")
+        echo "📊 ESTADO DE SERVICIOS"
+        echo "====================="
+        
+        check_service() {
+            local name=$1
+            local port=$2
+            local pidfile="logs/$name.pid"
+            
+            if [ -f "$pidfile" ]; then
+                local pid=$(cat "$pidfile")
+                if kill -0 "$pid" 2>/dev/null; then
+                    if [ "$port" != "N/A" ]; then
+                        if curl -s "http://localhost:$port" >/dev/null; then
+                            echo "✅ $name: RUNNING (PID: $pid, Port: $port)"
+                        else
+                            echo "⚠️  $name: PROCESS RUNNING but PORT NOT RESPONDING (PID: $pid, Port: $port)"
+                        fi
+                    else
+                        echo "✅ $name: RUNNING (PID: $pid)"
+                    fi
+                else
+                    echo "❌ $name: STOPPED (stale PID file)"
+                    rm "$pidfile"
+                fi
+            else
+                echo "❌ $name: STOPPED"
+            fi
+        }
+        
+        check_service "backend" "3000"
+        check_service "relayer" "N/A"
+        check_service "dashboard" "5173"
+        check_service "nft-example" "5174"
+        ;;
+        
+    "logs")
+        echo "📋 LOGS DISPONIBLES"
+        echo "=================="
+        echo "1. backend"
+        echo "2. relayer"
+        echo "3. dashboard"
+        echo "4. nft-example"
+        echo ""
+        read -p "Selecciona servicio (1-4): " choice
+        
+        case $choice in
+            1) tail -f logs/backend.log ;;
+            2) tail -f logs/relayer.log ;;
+            3) tail -f logs/dashboard.log ;;
+            4) tail -f logs/nft-example.log ;;
+            *) echo "Opción inválida" ;;
+        esac
+        ;;
+        
+    "restart")
+        echo "🔄 REINICIANDO SERVICIOS"
+        echo "======================="
+        ./stop-services.sh
+        sleep 2
+        ./start-services.sh
+        ;;
+        
+    "balances")
+        echo "💰 BALANCES DE WALLETS"
+        echo "====================="
+        echo "Admin: $(solana balance ~/.config/solana/id.json 2>/dev/null || echo 'Error')"
+        echo "Relayer: $(solana balance keys/relayer-keypair.json 2>/dev/null || echo 'Error')"
+        echo "Master Treasury: $(solana balance keys/master-treasury-keypair.json 2>/dev/null || echo 'Error')"
+        ;;
+        
+    "airdrop")
+        echo "🪙 OBTENIENDO SOL"
+        echo "================"
+        solana airdrop 2 ~/.config/solana/id.json
+        solana airdrop 2 keys/relayer-keypair.json
+        solana airdrop 2 keys/master-treasury-keypair.json
+        echo "✅ Airdrop completado"
+        ;;
+        
+    *)
+        echo "🛠️  UTILIDADES GASLESS INFRASTRUCTURE"
+        echo "===================================="
+        echo ""
+        echo "Uso: ./utils.sh [comando]"
+        echo ""
+        echo "Comandos disponibles:"
+        echo "  status    - Ver estado de servicios"
+        echo "  logs      - Ver logs de servicios"
+        echo "  restart   - Reiniciar todos los servicios"
+        echo "  balances  - Ver balances de wallets"
+        echo "  airdrop   - Obtener SOL para todas las wallets"
+        echo ""
+        ;;
+esac
+EOF
+
+# Hacer scripts ejecutables
+chmod +x start-services.sh
+chmod +x stop-services.sh
+chmod +x utils.sh
+
+log "✅ Scripts de gestión creados"
+
+echo ""
+echo "🎉 SETUP COMPLETO EXITOSO"
+echo "========================="
+echo ""
+echo "📋 Resumen de lo configurado:"
+echo "   ✅ Ambiente de desarrollo (Rust, Solana, Anchor, Node.js)"
+echo "   ✅ Programa Solana deployado en devnet"
+echo "   ✅ Protocolo inicializado en blockchain"
+echo "   ✅ Relayer autorizado"
+echo "   ✅ Servicio de ejemplo registrado"
+echo "   ✅ Dependencias de Node.js instaladas"
+echo "   ✅ Variables de entorno configuradas"
+echo "   ✅ Scripts de gestión creados"
+echo ""
+echo "🚀 PRÓXIMOS PASOS:"
+echo "   1. ./start-services.sh (iniciar todos los servicios)"
+echo "   2. Ir a http://localhost:5174 (probar ejemplo NFT)"
+echo "   3. ./utils.sh status (verificar estado)"
+echo ""
+echo "📊 INFORMACIÓN IMPORTANTE:"
+cat deployment-info.txt
+echo ""
+echo "🎯 ¡Tu infraestructura gasless está lista para usar!"
+echo ""

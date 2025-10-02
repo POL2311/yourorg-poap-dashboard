@@ -5,11 +5,14 @@ resolution = true
 skip-lint = false
 
 [programs.devnet]
-gasless_infrastructure = "55NZkybMneNX4a1C9dDTtWUq1iv3NRprpgMxRSjRoUSX"
+gasless_infrastructure = "49LhAwtW2UEbaLVGbZkgniT7XFGfFXMDnTUsboojgmQS"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "localnet"
-wallet = "~/.config/solana/admin.json"
+cluster = "devnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
