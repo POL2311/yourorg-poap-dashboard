@@ -13,12 +13,8 @@ const endpoint = 'http://localhost:8899' // solana-test-validator
 const apiUrl = import.meta.env.VITE_GASLESS_API_URL as string
 const serviceId = import.meta.env.VITE_GASLESS_SERVICE_ID as string
 
-if (!apiUrl) {
-  throw new Error('VITE_GASLESS_API_URL no está definido en .env');
-}
-if (!serviceId) {
-  throw new Error('VITE_GASLESS_SERVICE_ID no está definido en .env');
-}
+if (!apiUrl) throw new Error('VITE_GASLESS_API_URL no está definido en .env')
+if (!serviceId) throw new Error('VITE_GASLESS_SERVICE_ID no está definido en .env')
 
 // Instrucción dummy (válida pero “no-op”) contra SystemProgram
 function buildDummyIx(payer: PublicKey): TransactionInstruction {
@@ -31,7 +27,8 @@ function buildDummyIx(payer: PublicKey): TransactionInstruction {
 
 export default function NFTClaimApp() {
   const wallets = useMemo(() => [new PhantomWalletAdapter(), new SolflareWalletAdapter()], [])
-  const connection = useMemo(() => new Connection(endpoint, 'confirmed'), [])
+  // La conexión no se usa directamente, pero mantenerla no molesta:
+  useMemo(() => new Connection(endpoint, 'confirmed'), [])
   const [sdk] = useState(() => new GaslessSDK({ apiUrl, serviceId }))
 
   return (
@@ -66,35 +63,30 @@ export default function NFTClaimApp() {
 function ClaimSection({ sdk }: { sdk: GaslessSDK }) {
   const { wallet, publicKey } = useWallet()
 
-  const onClaim = useCallback(async () => {
-    try {
-      if (!wallet?.adapter || !publicKey) {
-        throw new Error('Conecta tu wallet primero')
-      }
-      // Nos aseguramos de que el adapter soporte signMessage
-      const message = this.createPermitMessage(permitData);
-console.debug('[GaslessSDK] signMessage len=', message.length, 'sample=', new TextDecoder().decode(message.slice(0, 32)));
+const onClaim = useCallback(async () => {
+  try {
+    if (!wallet?.adapter || !publicKey) throw new Error('Conecta tu wallet primero')
+    const adapter = wallet.adapter as any
+    if (typeof adapter.signMessage !== 'function') throw new Error('Tu wallet no soporta signMessage')
 
-      const adapter = wallet.adapter as any
-      if (typeof adapter.signMessage !== 'function') {
-        throw new Error('Tu wallet no soporta signMessage (requisito para permits)')
-      }
+    console.log('[UI] apiUrl =', import.meta.env.VITE_GASLESS_API_URL)
+    console.log('[UI] serviceId =', import.meta.env.VITE_GASLESS_SERVICE_ID)
+    console.log('[UI] publicKey =', publicKey.toBase58())
 
-      const ix = buildDummyIx(publicKey)
-      const permit = await sdk.createPermit(adapter, ix, {
-        expiry: Math.floor(Date.now() / 1000) + 15 * 60, // 15 min
-        maxFee: 5_000_000, // 0.005 SOL
-      })
+    const ix = buildDummyIx(publicKey)
+    console.log('[UI] calling sdk.createPermit...')
+    const permit = await sdk.createPermit(adapter, ix, {
+      expiry: Math.floor(Date.now() / 1000) + 15 * 60,
+      maxFee: 5_000_000,
+    })
+    console.log('[UI] permit response =', permit)
+    toast.success(`Permit creado (nonce ${permit.nonce})`)
+  } catch (e: any) {
+    console.error('[UI] onClaim error:', e)
+    toast.error(e?.message ?? 'Error al crear el permit')
+  }
+}, [wallet, publicKey, sdk])
 
-      toast.success(`Permit creado (nonce ${permit.nonce})`)
-      // Si quieres esperar ejecución:
-      // const executed = await sdk.waitForExecution(permit.permitId, { timeout: 60_000 })
-      // toast.success(`Ejecutado: ${executed.transactionSignature}`)
-    } catch (e: any) {
-      console.error(e)
-      toast.error(e?.message ?? 'Error al crear el permit')
-    }
-  }, [wallet, publicKey, sdk])
 
   if (!publicKey) {
     return <p>Conecta tu wallet para continuar.</p>
