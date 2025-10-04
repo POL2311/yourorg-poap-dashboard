@@ -31,12 +31,12 @@ export default function NFTClaimApp() {
           }}>
             <div style={{ maxWidth: 700, margin: '0 auto', textAlign: 'center' }}>
               <h1 style={{ fontSize: 48, marginBottom: 16, textShadow: '2px 2px 4px rgba(0,0,0,0.3)' }}>
-                🎨 Real NFT Gasless Magic
+                🎨 Complete Gasless NFT System
               </h1>
               
               <p style={{ fontSize: 18, marginBottom: 32, opacity: 0.9 }}>
-                Mint <strong>REAL NFTs</strong> without paying any gas fees!<br/>
-                <strong>✨ Token-2022 + Metadata • No gas fees • Instant delivery ✨</strong>
+                Fully connected end-to-end gasless NFT minting!<br/>
+                <strong>✨ Frontend → Backend → Blockchain → Your Wallet ✨</strong>
               </p>
 
               <div style={{ 
@@ -49,7 +49,7 @@ export default function NFTClaimApp() {
                 <p style={{ margin: '8px 0', fontSize: 14, opacity: 0.8 }}>
                   🌐 Network: <code>{endpoint.includes('localhost') ? 'Localnet' : 'Devnet'}</code><br/>
                   🔗 API: <code>{apiUrl}</code><br/>
-                  ⚡ Real NFT minting with Token-2022 + Metadata
+                  🔄 Complete automatic flow with real blockchain transactions
                 </p>
               </div>
 
@@ -65,7 +65,7 @@ export default function NFTClaimApp() {
                 }} />
               </div>
 
-              <RealNFTClaimSection />
+              <CompleteNFTClaimSection />
             </div>
           </div>
 
@@ -88,13 +88,13 @@ export default function NFTClaimApp() {
   )
 }
 
-function RealNFTClaimSection() {
+function CompleteNFTClaimSection() {
   const { publicKey } = useWallet()
   const [isLoading, setIsLoading] = useState(false)
   const [claimedNFTs, setClaimedNFTs] = useState<any[]>([])
   const [relayerStats, setRelayerStats] = useState<any>(null)
 
-  // Cargar estadísticas del relayer
+  // Load relayer stats
   const loadRelayerStats = useCallback(async () => {
     try {
       const response = await axios.get(`${apiUrl}/api/relayer/stats`)
@@ -106,29 +106,48 @@ function RealNFTClaimSection() {
     }
   }, [])
 
-  // Cargar datos iniciales
+  // Load initial data
   React.useEffect(() => {
     loadRelayerStats()
   }, [loadRelayerStats])
 
-  const onMagicalClaim = useCallback(async () => {
+  // 🎯 COMPLETE AUTOMATIC NFT CLAIM - Fully connected flow!
+  const onCompleteAutomaticClaim = useCallback(async () => {
     if (!publicKey) {
       toast.error('Please connect your wallet first!')
       return
     }
 
     setIsLoading(true)
-    const loadingToast = toast.loading('🎨 Minting your REAL NFT with Token-2022...')
+    const loadingToast = toast.loading('🔄 Starting complete automatic flow...')
 
     try {
-      console.log('🎯 Starting REAL NFT mint for:', publicKey.toString())
+      console.log('🎯 COMPLETE AUTOMATIC NFT CLAIM STARTED')
+      console.log(`👤 User: ${publicKey.toString()}`)
+      console.log(`🔗 API URL: ${apiUrl}/api/nft/claim-magical`)
+      
+      // Show the exact payload being sent
+      const payload = {
+        userPublicKey: publicKey.toString(),
+        serviceId: 'demo-service'
+      }
+      console.log('📤 Payload:', payload)
 
-      // ✨ LLAMADA DIRECTA AL ENDPOINT CORRECTO
-      const response = await axios.post(`${apiUrl}/api/nft/claim-magical`, {
-        userPublicKey: publicKey.toString()
-      })
+      // Show equivalent curl command
+      toast(
+        <div style={{ fontSize: 11, fontFamily: 'monospace' }}>
+          <div style={{ fontWeight: 'bold', marginBottom: 4 }}>🔧 Executing equivalent to:</div>
+          <div style={{ background: 'rgba(0,0,0,0.3)', padding: 8, borderRadius: 4, wordBreak: 'break-all' }}>
+            curl -X POST {apiUrl}/api/nft/claim-magical -H "Content-Type: application/json" -d '{JSON.stringify(payload)}'
+          </div>
+        </div>,
+        { duration: 8000, icon: '💻' }
+      )
 
-      console.log('📦 Response:', response.data)
+      // 🚀 COMPLETE AUTOMATIC API CALL
+      const response = await axios.post(`${apiUrl}/api/nft/claim-magical`, payload)
+
+      console.log('📦 Complete API Response:', response.data)
 
       if (response.data.success) {
         const { 
@@ -142,20 +161,21 @@ function RealNFTClaimSection() {
         
         toast.dismiss(loadingToast)
         
-        // Mostrar éxito con detalles del NFT real
+        // Show success with complete flow details
         toast.success(
           <div>
             <div style={{ fontWeight: 'bold', marginBottom: 8, fontSize: 16 }}>
-              🎉 REAL NFT Minted Successfully!
+              🎉 COMPLETE FLOW SUCCESS!
             </div>
             <div style={{ fontSize: 12, opacity: 0.9 }}>
-              ✨ Token-2022 + Metadata • Gas paid by relayer: {gasCostPaidByRelayer} lamports
+              ✨ Frontend → Backend → Blockchain → Your Wallet<br/>
+              💰 Gas paid by relayer: {gasCostPaidByRelayer} lamports
             </div>
           </div>,
           { duration: 12000 }
         )
 
-        // Mostrar detalles técnicos del NFT real
+        // Show technical details
         setTimeout(() => {
           toast.success(
             <div style={{ fontSize: 12 }}>
@@ -169,7 +189,7 @@ function RealNFTClaimSection() {
           )
         }, 2000)
 
-        // Agregar NFT a la lista local
+        // Add NFT to local list
         const newNFT = {
           mint: nftMint,
           tokenAccount: userTokenAccount,
@@ -180,33 +200,60 @@ function RealNFTClaimSection() {
         }
         setClaimedNFTs(prev => [newNFT, ...prev])
 
-        // Recargar stats del relayer
+        // Reload relayer stats
         await loadRelayerStats()
 
-        // Mostrar instrucciones para ver el NFT
+        // Show complete flow explanation
         setTimeout(() => {
           toast(
             <div style={{ fontSize: 12 }}>
-              <div style={{ fontWeight: 'bold', marginBottom: 4 }}>📱 How to see your NFT:</div>
+              <div style={{ fontWeight: 'bold', marginBottom: 4 }}>🔄 What just happened:</div>
+              <div>1. 🎯 You clicked the button</div>
+              <div>2. 📤 Frontend called backend API</div>
+              <div>3. 🔧 Backend minted real NFT</div>
+              <div>4. 💰 Relayer paid all gas fees</div>
+              <div>5. 🎨 NFT delivered to your wallet</div>
+              <div>6. ✨ You paid $0.00!</div>
+            </div>,
+            { duration: 20000, icon: '🔄' }
+          )
+        }, 4000)
+
+        // Show wallet instructions
+        setTimeout(() => {
+          toast(
+            <div style={{ fontSize: 12 }}>
+              <div style={{ fontWeight: 'bold', marginBottom: 4 }}>📱 Check your wallet:</div>
               <div>1. Open your wallet (Phantom, Solflare)</div>
               <div>2. Go to NFTs/Collectibles section</div>
               <div>3. Look for "{metadata.name}"</div>
               <div>4. It may take 1-2 minutes to appear</div>
             </div>,
-            { duration: 20000, icon: '💡' }
+            { duration: 25000, icon: '💡' }
           )
-        }, 4000)
+        }, 6000)
 
       } else {
         throw new Error(response.data.error || 'Failed to mint NFT')
       }
 
     } catch (error: any) {
-      console.error('❌ Error minting real NFT:', error)
+      console.error('❌ Error in complete automatic claim:', error)
       toast.dismiss(loadingToast)
       
       const errorMessage = error.response?.data?.error || error.message || 'Failed to mint NFT'
       toast.error(`❌ ${errorMessage}`)
+      
+      // Show debugging info
+      toast.error(
+        <div style={{ fontSize: 12 }}>
+          <div>🔍 Debug info:</div>
+          <div>API URL: {apiUrl}</div>
+          <div>User: {publicKey.toString()}</div>
+          <div>Check backend is running on port 3000</div>
+        </div>,
+        { duration: 15000 }
+      )
     } finally {
       setIsLoading(false)
     }
@@ -221,10 +268,10 @@ function RealNFTClaimSection() {
         backdropFilter: 'blur(10px)'
       }}>
         <p style={{ fontSize: 18, margin: 0 }}>
-          👆 Connect your wallet to mint real NFTs
+          👆 Connect your wallet to experience the complete flow
         </p>
         <p style={{ fontSize: 14, marginTop: 8, opacity: 0.8 }}>
-          Real Token-2022 NFTs with metadata, no gas fees! ✨
+          Frontend → Backend → Blockchain → Your Wallet ✨
         </p>
       </div>
     )
@@ -249,7 +296,7 @@ function RealNFTClaimSection() {
       </div>
 
       <button
-        onClick={onMagicalClaim}
+        onClick={onCompleteAutomaticClaim}
         disabled={isLoading || (relayerStats && relayerStats.balance < 0.01)}
         style={{
           background: isLoading 
@@ -267,18 +314,19 @@ function RealNFTClaimSection() {
           boxShadow: '0 4px 15px rgba(0,0,0,0.2)',
           transition: 'all 0.3s ease',
           transform: isLoading ? 'scale(0.95)' : 'scale(1)',
-          minWidth: 280
+          minWidth: 350
         }}
       >
         {isLoading 
-          ? '🎨 Minting Real NFT...' 
+          ? '🔄 Complete Flow Running...' 
           : (relayerStats && relayerStats.balance < 0.01)
           ? '💰 Relayer Low Balance'
-          : '✨ Mint Real NFT (Token-2022)'}
+          : '🚀 Complete Gasless NFT Flow'}
       </button>
 
       <div style={{ marginTop: 16, fontSize: 14, opacity: 0.8 }}>
-        🚀 Real Token-2022 NFT • Zero cost • Instant delivery • Pure magic
+        🔄 Complete automatic flow: Frontend → Backend → Blockchain → Your Wallet<br/>
+        <code style={{ fontSize: 12 }}>POST {apiUrl}/api/nft/claim-magical</code>
       </div>
 
       {relayerStats && relayerStats.balance < 0.01 && (
@@ -302,7 +350,7 @@ function RealNFTClaimSection() {
           border: '1px solid rgba(46, 204, 113, 0.3)'
         }}>
           <div style={{ fontWeight: 'bold', marginBottom: 12 }}>
-            🎨 Your Real NFTs ({claimedNFTs.length}):
+            🎨 Your Complete Flow NFTs ({claimedNFTs.length}):
           </div>
           {claimedNFTs.slice(0, 3).map((nft, index) => (
             <div key={nft.mint} style={{ 
@@ -312,20 +360,20 @@ function RealNFTClaimSection() {
               background: 'rgba(255,255,255,0.1)',
               borderRadius: 8
             }}>
-              <div style={{ fontWeight: 'bold', marginBottom: 4 }}>{nft.metadata.name}</div>
-              <div>🎨 Mint: {nft.mint.slice(0, 16)}...{nft.mint.slice(-16)}</div>
+              <div style={{ fontWeight: 'bold', marginBottom: 4 }}>🎨 {nft.metadata.name}</div>
+              <div>📍 Mint: {nft.mint.slice(0, 16)}...{nft.mint.slice(-16)}</div>
               <div>📦 Token Account: {nft.tokenAccount.slice(0, 16)}...{nft.tokenAccount.slice(-16)}</div>
               <div>📦 Transaction: {nft.transaction.slice(0, 16)}...{nft.transaction.slice(-16)}</div>
               <div>⏰ {new Date(nft.timestamp).toLocaleString()}</div>
-              <div>💰 Gas Cost: {nft.gasCost} lamports (paid by relayer)</div>
+              <div>💰 Gas Cost: {nft.gasCost} lamports (paid automatically)</div>
               <div style={{ marginTop: 4, fontSize: 10, opacity: 0.8 }}>
-                💡 Check your wallet's NFT section to see this Token-2022 NFT!
+                ✨ Complete end-to-end gasless flow success!
               </div>
             </div>
           ))}
           {claimedNFTs.length > 3 && (
             <div style={{ fontSize: 12, opacity: 0.8, textAlign: 'center' }}>
-              ... and {claimedNFTs.length - 3} more real NFTs!
+              ... and {claimedNFTs.length - 3} more complete flow NFTs!
             </div>
           )}
         </div>
