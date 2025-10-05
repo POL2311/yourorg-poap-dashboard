@@ -12,8 +12,11 @@ workspace = "7QNe37UmuXqs84dbWQQ5ezs2PmREWg9QM98DbFTQEGi9"
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "http://local-validator:8899"
+cluster = "devnet"
 wallet = "~/.config/solana/id.json"
-
+[
+programs.devnet
+]
+gasless_infrastructure = "49LhAwtW2UEbaLVGbZkgniT7XFGfFXMDnTUsboojgmQS"
 [scripts]
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"

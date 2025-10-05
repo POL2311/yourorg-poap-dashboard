@@ -1,14 +1,14 @@
 {
-  "name": "gasless-nft-example",
+  "name": "poap-demo",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --port 5175 --host",
     "build": "tsc && vite build",
-    "preview": "vite preview --port 5174 --strictPort"
+    "preview": "vite preview --port 5175"
   },
   "dependencies": {
-    "@gasless-infra/sdk": "file:../../sdk",
     "@solana/wallet-adapter-base": "^0.9.23",
     "@solana/wallet-adapter-react": "^0.15.35",
     "@solana/wallet-adapter-react-ui": "^0.9.35",

@@ -9,7 +9,7 @@ import axios from 'axios'
 import '@solana/wallet-adapter-react-ui/styles.css'
 
 // === CONFIG ===
-const endpoint = 'http://localhost:8899' // solana-test-validator
+const endpoint = 'https://api.devnet.solana.com' // solana-test-validator
 const apiUrl = import.meta.env.VITE_GASLESS_API_URL as string || 'http://localhost:3000'
 
 if (!apiUrl) {
