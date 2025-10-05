@@ -9,8 +9,8 @@ import axios from 'axios'
 import '@solana/wallet-adapter-react-ui/styles.css'
 
 // === CONFIG ===
-const endpoint = process.env.VITE_SOLANA_RPC_URL || 'http://localhost:8899'
-const apiUrl = import.meta.env.VITE_GASLESS_API_URL as string || 'http://localhost:3000'
+const endpoint = 'https://api.devnet.solana.com'  // FIXED: removed extra colon
+const apiUrl = 'http://localhost:3000'  // Direct API URL
 
 console.log('🔧 Config:', { endpoint, apiUrl });
 
@@ -31,12 +31,12 @@ export default function NFTClaimApp() {
           }}>
             <div style={{ maxWidth: 700, margin: '0 auto', textAlign: 'center' }}>
               <h1 style={{ fontSize: 48, marginBottom: 16, textShadow: '2px 2px 4px rgba(0,0,0,0.3)' }}>
-                🎨 Complete Gasless NFT System
+                🎨 Devnet Gasless NFT
               </h1>
               
               <p style={{ fontSize: 18, marginBottom: 32, opacity: 0.9 }}>
-                Fully connected end-to-end gasless NFT minting!<br/>
-                <strong>✨ Frontend → Backend → Blockchain → Your Wallet ✨</strong>
+                Mint real NFTs on <strong>Solana Devnet</strong> without gas fees!<br/>
+                <strong>✨ Real blockchain transactions • Zero cost • Instant delivery ✨</strong>
               </p>
 
               <div style={{ 
@@ -47,9 +47,9 @@ export default function NFTClaimApp() {
                 backdropFilter: 'blur(10px)'
               }}>
                 <p style={{ margin: '8px 0', fontSize: 14, opacity: 0.8 }}>
-                  🌐 Network: <code>{endpoint.includes('localhost') ? 'Localnet' : 'Devnet'}</code><br/>
+                  🌐 Network: <code>Solana Devnet</code><br/>
                   🔗 API: <code>{apiUrl}</code><br/>
-                  🔄 Complete automatic flow with real blockchain transactions
+                  ⚡ Real devnet transactions with automatic gas payment
                 </p>
               </div>
 
@@ -65,7 +65,7 @@ export default function NFTClaimApp() {
                 }} />
               </div>
 
-              <CompleteNFTClaimSection />
+              <DevnetNFTClaimSection />
             </div>
           </div>
 
@@ -88,7 +88,7 @@ export default function NFTClaimApp() {
   )
 }
 
-function CompleteNFTClaimSection() {
+function DevnetNFTClaimSection() {
   const { publicKey } = useWallet()
   const [isLoading, setIsLoading] = useState(false)
   const [claimedNFTs, setClaimedNFTs] = useState<any[]>([])
@@ -111,43 +111,29 @@ function CompleteNFTClaimSection() {
     loadRelayerStats()
   }, [loadRelayerStats])
 
-  // 🎯 COMPLETE AUTOMATIC NFT CLAIM - Fully connected flow!
-  const onCompleteAutomaticClaim = useCallback(async () => {
+  // 🎯 DEVNET NFT CLAIM - Direct API call
+  const onDevnetClaim = useCallback(async () => {
     if (!publicKey) {
       toast.error('Please connect your wallet first!')
       return
     }
 
     setIsLoading(true)
-    const loadingToast = toast.loading('🔄 Starting complete automatic flow...')
+    const loadingToast = toast.loading('🎨 Minting real NFT on Solana Devnet...')
 
     try {
-      console.log('🎯 COMPLETE AUTOMATIC NFT CLAIM STARTED')
+      console.log('🎯 DEVNET NFT CLAIM STARTED')
       console.log(`👤 User: ${publicKey.toString()}`)
+      console.log(`🌐 Network: Solana Devnet`)
       console.log(`🔗 API URL: ${apiUrl}/api/nft/claim-magical`)
-      
-      // Show the exact payload being sent
-      const payload = {
+
+      // Direct API call to backend
+      const response = await axios.post(`${apiUrl}/api/nft/claim-magical`, {
         userPublicKey: publicKey.toString(),
-        serviceId: 'demo-service'
-      }
-      console.log('📤 Payload:', payload)
+        serviceId: 'devnet-demo-service'
+      })
 
-      // Show equivalent curl command
-      toast(
-        <div style={{ fontSize: 11, fontFamily: 'monospace' }}>
-          <div style={{ fontWeight: 'bold', marginBottom: 4 }}>🔧 Executing equivalent to:</div>
-          <div style={{ background: 'rgba(0,0,0,0.3)', padding: 8, borderRadius: 4, wordBreak: 'break-all' }}>
-            curl -X POST {apiUrl}/api/nft/claim-magical -H "Content-Type: application/json" -d '{JSON.stringify(payload)}'
-          </div>
-        </div>,
-        { duration: 8000, icon: '💻' }
-      )
-
-      // 🚀 COMPLETE AUTOMATIC API CALL
-      const response = await axios.post(`${apiUrl}/api/nft/claim-magical`, payload)
-
-      console.log('📦 Complete API Response:', response.data)
+      console.log('📦 API Response:', response.data)
 
       if (response.data.success) {
         const { 
@@ -161,31 +147,29 @@ function CompleteNFTClaimSection() {
         
         toast.dismiss(loadingToast)
         
-        // Show success with complete flow details
+        // Show success
         toast.success(
           <div>
             <div style={{ fontWeight: 'bold', marginBottom: 8, fontSize: 16 }}>
-              🎉 COMPLETE FLOW SUCCESS!
+              🎉 DEVNET NFT MINTED!
             </div>
             <div style={{ fontSize: 12, opacity: 0.9 }}>
-              ✨ Frontend → Backend → Blockchain → Your Wallet<br/>
-              💰 Gas paid by relayer: {gasCostPaidByRelayer} lamports
+              ✨ Real Solana Devnet transaction • Gas paid by relayer: {gasCostPaidByRelayer} lamports
             </div>
           </div>,
           { duration: 12000 }
         )
 
-        // Show technical details
+        // Show devnet explorer link
         setTimeout(() => {
           toast.success(
             <div style={{ fontSize: 12 }}>
               <div style={{ fontWeight: 'bold', marginBottom: 4 }}>🎨 {metadata.name}</div>
               <div>📍 Mint: {nftMint.slice(0, 12)}...{nftMint.slice(-12)}</div>
-              <div>📦 Token Account: {userTokenAccount.slice(0, 12)}...{userTokenAccount.slice(-12)}</div>
               <div>📦 TX: {transactionSignature.slice(0, 12)}...{transactionSignature.slice(-12)}</div>
-              <div>⚡ Relayer: {relayerPublicKey.slice(0, 12)}...{relayerPublicKey.slice(-12)}</div>
+              <div>🔗 <a href={`https://explorer.solana.com/tx/${transactionSignature}?cluster=devnet`} target="_blank" style={{color: '#4ade80'}}>View on Devnet Explorer</a></div>
             </div>,
-            { duration: 15000 }
+            { duration: 20000 }
           )
         }, 2000)
 
@@ -203,42 +187,12 @@ function CompleteNFTClaimSection() {
         // Reload relayer stats
         await loadRelayerStats()
 
-        // Show complete flow explanation
-        setTimeout(() => {
-          toast(
-            <div style={{ fontSize: 12 }}>
-              <div style={{ fontWeight: 'bold', marginBottom: 4 }}>🔄 What just happened:</div>
-              <div>1. 🎯 You clicked the button</div>
-              <div>2. 📤 Frontend called backend API</div>
-              <div>3. 🔧 Backend minted real NFT</div>
-              <div>4. 💰 Relayer paid all gas fees</div>
-              <div>5. 🎨 NFT delivered to your wallet</div>
-              <div>6. ✨ You paid $0.00!</div>
-            </div>,
-            { duration: 20000, icon: '🔄' }
-          )
-        }, 4000)
-
-        // Show wallet instructions
-        setTimeout(() => {
-          toast(
-            <div style={{ fontSize: 12 }}>
-              <div style={{ fontWeight: 'bold', marginBottom: 4 }}>📱 Check your wallet:</div>
-              <div>1. Open your wallet (Phantom, Solflare)</div>
-              <div>2. Go to NFTs/Collectibles section</div>
-              <div>3. Look for "{metadata.name}"</div>
-              <div>4. It may take 1-2 minutes to appear</div>
-            </div>,
-            { duration: 25000, icon: '💡' }
-          )
-        }, 6000)
-
       } else {
         throw new Error(response.data.error || 'Failed to mint NFT')
       }
 
     } catch (error: any) {
-      console.error('❌ Error in complete automatic claim:', error)
+      console.error('❌ Error minting devnet NFT:', error)
       toast.dismiss(loadingToast)
       
       const errorMessage = error.response?.data?.error || error.message || 'Failed to mint NFT'
@@ -250,6 +204,7 @@ function CompleteNFTClaimSection() {
           <div>🔍 Debug info:</div>
           <div>API URL: {apiUrl}</div>
           <div>User: {publicKey.toString()}</div>
+          <div>Network: Solana Devnet</div>
           <div>Check backend is running on port 3000</div>
         </div>,
         { duration: 15000 }
@@ -268,10 +223,10 @@ function CompleteNFTClaimSection() {
         backdropFilter: 'blur(10px)'
       }}>
         <p style={{ fontSize: 18, margin: 0 }}>
-          👆 Connect your wallet to experience the complete flow
+          👆 Connect your wallet to mint NFTs on Devnet
         </p>
         <p style={{ fontSize: 14, marginTop: 8, opacity: 0.8 }}>
-          Frontend → Backend → Blockchain → Your Wallet ✨
+          Real Solana Devnet transactions, zero gas fees! ✨
         </p>
       </div>
     )
@@ -296,7 +251,7 @@ function CompleteNFTClaimSection() {
       </div>
 
       <button
-        onClick={onCompleteAutomaticClaim}
+        onClick={onDevnetClaim}
         disabled={isLoading || (relayerStats && relayerStats.balance < 0.01)}
         style={{
           background: isLoading 
@@ -314,32 +269,20 @@ function CompleteNFTClaimSection() {
           boxShadow: '0 4px 15px rgba(0,0,0,0.2)',
           transition: 'all 0.3s ease',
           transform: isLoading ? 'scale(0.95)' : 'scale(1)',
-          minWidth: 350
+          minWidth: 320
         }}
       >
         {isLoading 
-          ? '🔄 Complete Flow Running...' 
+          ? '🎨 Minting on Devnet...' 
           : (relayerStats && relayerStats.balance < 0.01)
           ? '💰 Relayer Low Balance'
-          : '🚀 Complete Gasless NFT Flow'}
+          : '🚀 Mint NFT on Devnet'}
       </button>
 
       <div style={{ marginTop: 16, fontSize: 14, opacity: 0.8 }}>
-        🔄 Complete automatic flow: Frontend → Backend → Blockchain → Your Wallet<br/>
+        🌐 Real Solana Devnet transactions • Zero gas fees<br/>
         <code style={{ fontSize: 12 }}>POST {apiUrl}/api/nft/claim-magical</code>
       </div>
-
-      {relayerStats && relayerStats.balance < 0.01 && (
-        <div style={{ 
-          marginTop: 16, 
-          padding: 12, 
-          background: 'rgba(231, 76, 60, 0.2)',
-          borderRadius: 8,
-          fontSize: 12
-        }}>
-          ⚠️ Relayer balance too low. Need at least 0.01 SOL for minting.
-        </div>
-      )}
 
       {claimedNFTs.length > 0 && (
         <div style={{ 
@@ -350,7 +293,7 @@ function CompleteNFTClaimSection() {
           border: '1px solid rgba(46, 204, 113, 0.3)'
         }}>
           <div style={{ fontWeight: 'bold', marginBottom: 12 }}>
-            🎨 Your Complete Flow NFTs ({claimedNFTs.length}):
+            🎨 Your Devnet NFTs ({claimedNFTs.length}):
           </div>
           {claimedNFTs.slice(0, 3).map((nft, index) => (
             <div key={nft.mint} style={{ 
@@ -362,20 +305,18 @@ function CompleteNFTClaimSection() {
             }}>
               <div style={{ fontWeight: 'bold', marginBottom: 4 }}>🎨 {nft.metadata.name}</div>
               <div>📍 Mint: {nft.mint.slice(0, 16)}...{nft.mint.slice(-16)}</div>
-              <div>📦 Token Account: {nft.tokenAccount.slice(0, 16)}...{nft.tokenAccount.slice(-16)}</div>
               <div>📦 Transaction: {nft.transaction.slice(0, 16)}...{nft.transaction.slice(-16)}</div>
               <div>⏰ {new Date(nft.timestamp).toLocaleString()}</div>
-              <div>💰 Gas Cost: {nft.gasCost} lamports (paid automatically)</div>
-              <div style={{ marginTop: 4, fontSize: 10, opacity: 0.8 }}>
-                ✨ Complete end-to-end gasless flow success!
+              <div>💰 Gas Cost: {nft.gasCost} lamports (paid by relayer)</div>
+              <div style={{ marginTop: 4 }}>
+                <a href={`https://explorer.solana.com/tx/${nft.transaction}?cluster=devnet`} 
+                   target="_blank" 
+                   style={{color: '#4ade80', fontSize: 10}}>
+                  🔗 View on Devnet Explorer
+                </a>
               </div>
             </div>
           ))}
-          {claimedNFTs.length > 3 && (
-            <div style={{ fontSize: 12, opacity: 0.8, textAlign: 'center' }}>
-              ... and {claimedNFTs.length - 3} more complete flow NFTs!
-            </div>
-          )}
         </div>
       )}
     </div>
