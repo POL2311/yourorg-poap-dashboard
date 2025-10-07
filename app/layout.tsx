@@ -1,18 +1,25 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import { Providers } from './providers'
-
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  themeColor: '#111827',
+};
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'POAP Infrastructure - Organizer Dashboard',
-  description: 'Multi-tenant gasless POAP platform on Solana - Organizer Dashboard',
-  keywords: ['POAP', 'Solana', 'NFT', 'Gasless', 'Blockchain', 'Events'],
-  authors: [{ name: 'POAP Infrastructure Team' }],
-  viewport: 'width=device-width, initial-scale=1',
-  themeColor: '#6366f1',
-}
+  title: 'POAP Dashboard',
+  description: 'Organizer dashboard for multi-tenant POAP',
+  icons: {
+    icon: '/favicon.ico',
+    apple: [
+      { url: '/apple-touch-icon.png', sizes: '180x180' },
+      { url: '/apple-touch-icon-precomposed.png', sizes: '180x180' },
+    ],
+  },
+};
 
 export default function RootLayout({
   children,
