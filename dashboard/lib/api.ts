@@ -16,7 +16,8 @@ import {
   ApiKeyForm
 } from './types'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+baseURL: `${API_URL}/api`
 
 class ApiClient {
   private client: AxiosInstance
@@ -33,16 +34,17 @@ class ApiClient {
     // Request interceptor to add auth token
     this.client.interceptors.request.use(
       (config) => {
-        const token = Cookies.get('auth-token')
-        if (token) {
-          config.headers.Authorization = `Bearer ${token}`
-        }
-        return config
-      },
-      (error) => {
-        return Promise.reject(error)
-      }
-    )
+        let token: string | null = null;
+            if (typeof window !== 'undefined') {
+              token = localStorage.getItem('jwt') || Cookies.get('auth-token') || null;
+            }
+            if (token) {
+              config.headers.Authorization = `Bearer ${token}`;
+            }
+            return config;
+          },
+          (error) => Promise.reject(error)
+        );
 
     // Response interceptor for error handling
     this.client.interceptors.response.use(
