@@ -12,6 +12,20 @@ import { Card, CardContent } from '@/components/ui/card'
 import { toISO } from '@/lib/utils'
 import { toast } from 'react-hot-toast'
 
+/** Helper: ISO -> valor compatible con <input type="datetime-local"> */
+function toLocalInputValue(iso?: string) {
+  if (!iso) return ''
+  try {
+    const d = new Date(iso)
+    // YYYY-MM-DDTHH:mm (sin segundos ni Z)
+    return new Date(d.getTime() - d.getTimezoneOffset() * 60000)
+      .toISOString()
+      .slice(0, 16)
+  } catch {
+    return ''
+  }
+}
+
 const schema = z.object({
   name: z.string().min(1, 'Required'),
   slug: z.string().min(1, 'Required').regex(/^[a-z0-9-]+$/, 'Use lowercase, numbers and dashes'),
@@ -21,7 +35,7 @@ const schema = z.object({
   externalUrl: z.string().url('Invalid URL').optional().or(z.literal('').transform(() => undefined)),
   secretCode: z.string().optional(),
   maxClaims: z.coerce.number().int().positive('Must be > 0').optional(),
-  // Inputs vienen como "YYYY-MM-DDTHH:mm" (sin Z). Los validamos como string aquí
+  // el input manda "YYYY-MM-DDTHH:mm"
   eventDate: z.string().min(1, 'Required'),
   startAt: z.string().optional(),
   endAt: z.string().optional(),
@@ -30,17 +44,27 @@ const schema = z.object({
 export type CampaignFormValues = z.infer<typeof schema>
 
 type Props = {
+  mode?: 'create' | 'edit'
   defaultValues?: Partial<CampaignFormValues>
   isLoading?: boolean
-  onSubmit: (payload: any) => Promise<any> | any // el padre (CampaignsPage) hace la llamada al API
+  submitLabel?: string
+  onSubmit: (payload: any) => Promise<any> | any
 }
 
-export function CampaignForm({ defaultValues, isLoading, onSubmit }: Props) {
+export function CampaignForm({
+  mode = 'create',
+  defaultValues,
+  isLoading,
+  submitLabel,
+  onSubmit,
+}: Props) {
   const {
     register,
     handleSubmit,
     formState: { errors },
     reset,
+    setValue,
+    watch,
   } = useForm<CampaignFormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -52,15 +76,33 @@ export function CampaignForm({ defaultValues, isLoading, onSubmit }: Props) {
       externalUrl: '',
       secretCode: '',
       maxClaims: undefined,
-      eventDate: '',   // ← <input type="datetime-local">
+      eventDate: '', // datetime-local
       startAt: '',
       endAt: '',
       ...defaultValues,
+      // Forzamos que el campo visible tenga el formato local correcto si viene ISO
+      ...(defaultValues?.eventDate
+        ? { eventDate: toLocalInputValue(defaultValues.eventDate) }
+        : {}),
+      ...(defaultValues?.startAt ? { startAt: toLocalInputValue(defaultValues.startAt) } : {}),
+      ...(defaultValues?.endAt ? { endAt: toLocalInputValue(defaultValues.endAt) } : {}),
     },
   })
 
+  // Si vienen nuevos defaultValues (por ejemplo al abrir un modal), sincroniza
+  React.useEffect(() => {
+    if (defaultValues) {
+      reset({
+        ...defaultValues,
+        eventDate: toLocalInputValue(defaultValues.eventDate),
+        startAt: toLocalInputValue(defaultValues.startAt),
+        endAt: toLocalInputValue(defaultValues.endAt),
+      })
+    }
+  }, [defaultValues, reset])
+
   const submit = async (values: CampaignFormValues) => {
-    // Normalizamos fechas a ISO para el backend (z.string().datetime())
+    // Normalizamos fechas a ISO
     const payload = {
       name: values.name,
       slug: values.slug,
@@ -70,10 +112,10 @@ export function CampaignForm({ defaultValues, isLoading, onSubmit }: Props) {
       externalUrl: values.externalUrl || undefined,
       secretCode: values.secretCode || undefined,
       maxClaims: values.maxClaims ?? undefined,
-      eventDate: toISO(values.eventDate), // ← CLAVE
+      eventDate: toISO(values.eventDate), // ← ISO
       startAt: toISO(values.startAt),
       endAt: toISO(values.endAt),
-      metadata: undefined, // si usas metadata aparte, puedes agregarlo aquí
+      metadata: undefined,
     }
 
     if (!payload.eventDate) {
@@ -81,15 +123,17 @@ export function CampaignForm({ defaultValues, isLoading, onSubmit }: Props) {
       return
     }
 
-    try {
-      await onSubmit(payload)
-      reset()
-      toast.success('Campaign created!')
-    } catch (e: any) {
-      // el padre ya muestra errores, esto es por si se llama directo
-      toast.error(e?.message ?? 'Failed to create campaign')
-    }
+try {
+  await onSubmit(payload)
+  if (mode === 'create') {
+    reset()
   }
+} catch (e: any) {
+  toast.error(e?.message ?? 'Failed to submit campaign')
+}
+  }
+
+  const eventDateVal = watch('eventDate')
 
   return (
     <form onSubmit={handleSubmit(submit)} className="space-y-4">
@@ -102,7 +146,13 @@ export function CampaignForm({ defaultValues, isLoading, onSubmit }: Props) {
 
         <div className="space-y-2">
           <Label htmlFor="slug">Slug *</Label>
-          <Input id="slug" placeholder="my-awesome-event" {...register('slug')} />
+          <Input
+            id="slug"
+            placeholder="my-awesome-event"
+            {...register('slug')}
+            // si no quieres editar el slug en modo edición, descomenta:
+            // disabled={mode === 'edit'}
+          />
           {errors.slug && <p className="text-sm text-red-600">{errors.slug.message}</p>}
         </div>
 
@@ -117,7 +167,8 @@ export function CampaignForm({ defaultValues, isLoading, onSubmit }: Props) {
           <Input
             id="eventDate"
             type="datetime-local"
-            {...register('eventDate')}
+            value={eventDateVal || ''}
+            onChange={(e) => setValue('eventDate', e.target.value, { shouldValidate: true })}
           />
           {errors.eventDate && <p className="text-sm text-red-600">{errors.eventDate.message}</p>}
         </div>
@@ -152,8 +203,7 @@ export function CampaignForm({ defaultValues, isLoading, onSubmit }: Props) {
           {errors.maxClaims && <p className="text-sm text-red-600">{errors.maxClaims.message}</p>}
         </div>
 
-        {/* Opcional: ventanas para programar vigencia */}
-        {/* 
+        {/* Si vas a habilitar ventanas de vigencia, descomenta estos campos
         <div className="space-y-2">
           <Label htmlFor="startAt">Start At</Label>
           <Input id="startAt" type="datetime-local" {...register('startAt')} />
@@ -169,7 +219,7 @@ export function CampaignForm({ defaultValues, isLoading, onSubmit }: Props) {
         <CardContent className="pt-4">
           <div className="flex items-center justify-end">
             <Button type="submit" disabled={isLoading}>
-              {isLoading ? 'Creating...' : 'Create Campaign'}
+              {isLoading ? (mode === 'create' ? 'Creating...' : 'Saving...') : (submitLabel ?? (mode === 'create' ? 'Create Campaign' : 'Save Changes'))}
             </Button>
           </div>
         </CardContent>

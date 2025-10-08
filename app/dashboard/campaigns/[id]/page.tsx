@@ -15,13 +15,11 @@ import {
   TableRow 
 } from '@/components/ui/table'
 import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
+  CartesianGrid,
   ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
   LineChart,
   Line
 } from 'recharts'
@@ -42,13 +40,12 @@ import { toast } from 'react-hot-toast'
 import Link from 'next/link'
 
 interface CampaignDetailPageProps {
-  params: {
-    id: string
-  }
+  params: { id: string }
 }
 
 export default function CampaignDetailPage({ params }: CampaignDetailPageProps) {
   const [currentPage, setCurrentPage] = useState(1)
+
   const { data: campaignData, isLoading: campaignLoading } = useCampaign(params.id)
   const { data: analyticsData, isLoading: analyticsLoading } = useCampaignAnalytics(params.id)
   const { data: claimsData, isLoading: claimsLoading } = useCampaignClaims(params.id, {
@@ -58,7 +55,7 @@ export default function CampaignDetailPage({ params }: CampaignDetailPageProps) 
 
   const campaign = campaignData?.data
   const analytics = analyticsData?.data
-  const claims = claimsData?.data?.claims || []
+  const claims = claimsData?.data?.claims ?? []
   const pagination = claimsData?.data?.pagination
 
   const copyClaimUrl = () => {
@@ -74,7 +71,7 @@ export default function CampaignDetailPage({ params }: CampaignDetailPageProps) 
   -d '{
     "userPublicKey": "USER_SOLANA_PUBLIC_KEY",
     "campaignId": "${params.id}",
-    "secretCode": "${campaign?.secretCode || 'SECRET_CODE'}"
+    "secretCode": "${campaign?.secretCode ?? 'SECRET_CODE'}"
   }'`
     navigator.clipboard.writeText(example)
     toast.success('API example copied to clipboard!')
@@ -115,8 +112,8 @@ export default function CampaignDetailPage({ params }: CampaignDetailPageProps) 
         <div>
           <div className="flex items-center space-x-3 mb-2">
             <h1 className="text-3xl font-bold text-gray-900">{campaign.name}</h1>
-            <Badge variant={campaign.isActive ? "success" : "secondary"}>
-              {campaign.isActive ? "Active" : "Inactive"}
+            <Badge variant={campaign.isActive ? 'success' : 'secondary'}>
+              {campaign.isActive ? 'Active' : 'Inactive'}
             </Badge>
           </div>
           {campaign.description && (
@@ -162,7 +159,7 @@ export default function CampaignDetailPage({ params }: CampaignDetailPageProps) 
       </div>
 
       {/* Stats Cards */}
-      {analytics && (
+      {!!analytics && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -170,11 +167,12 @@ export default function CampaignDetailPage({ params }: CampaignDetailPageProps) 
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{formatNumber(analytics.claims.total)}</div>
+              <div className="text-2xl font-bold">
+                {formatNumber(analytics.claims?.total ?? 0)}
+              </div>
               <p className="text-xs text-muted-foreground">
-                {analytics.claims.remaining !== null && (
-                  `${formatNumber(analytics.claims.remaining)} remaining`
-                )}
+                {typeof analytics.claims?.remaining === 'number' &&
+                  `${formatNumber(analytics.claims.remaining)} remaining`}
               </p>
             </CardContent>
           </Card>
@@ -185,9 +183,11 @@ export default function CampaignDetailPage({ params }: CampaignDetailPageProps) 
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{formatNumber(analytics.claims.thisMonth)}</div>
+              <div className="text-2xl font-bold">
+                {formatNumber(analytics.claims?.thisMonth ?? 0)}
+              </div>
               <p className="text-xs text-muted-foreground">
-                {formatNumber(analytics.claims.thisWeek)} this week
+                {formatNumber(analytics.claims?.thisWeek ?? 0)} this week
               </p>
             </CardContent>
           </Card>
@@ -198,9 +198,11 @@ export default function CampaignDetailPage({ params }: CampaignDetailPageProps) 
               <Zap className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{formatSOL(analytics.gas.totalCost)}</div>
+              <div className="text-2xl font-bold">
+                {formatSOL(analytics.gas?.totalCost ?? 0)}
+              </div>
               <p className="text-xs text-muted-foreground">
-                {formatSOL(analytics.gas.averageCost)} avg per claim
+                {formatSOL(analytics.gas?.averageCost ?? 0)} avg per claim
               </p>
             </CardContent>
           </Card>
@@ -212,13 +214,14 @@ export default function CampaignDetailPage({ params }: CampaignDetailPageProps) 
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {campaign.maxClaims 
-                  ? `${((analytics.claims.total / campaign.maxClaims) * 100).toFixed(1)}%`
-                  : '∞'
-                }
+                {typeof campaign.maxClaims === 'number' && campaign.maxClaims > 0
+                  ? `${(((analytics.claims?.total ?? 0) / campaign.maxClaims) * 100).toFixed(1)}%`
+                  : '∞'}
               </div>
               <p className="text-xs text-muted-foreground">
-                {campaign.maxClaims ? `of ${formatNumber(campaign.maxClaims)} max` : 'No limit set'}
+                {typeof campaign.maxClaims === 'number'
+                  ? `of ${formatNumber(campaign.maxClaims)} max`
+                  : 'No limit set'}
               </p>
             </CardContent>
           </Card>
@@ -235,27 +238,25 @@ export default function CampaignDetailPage({ params }: CampaignDetailPageProps) 
         </TabsList>
 
         <TabsContent value="analytics" className="space-y-6">
-          {analytics && (
+          {!!analytics && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Daily Claims Chart */}
               <Card>
                 <CardHeader>
                   <CardTitle>Daily Claims</CardTitle>
-                  <CardDescription>
-                    Claims over the last 30 days
-                  </CardDescription>
+                  <CardDescription>Claims over the last 30 days</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={300}>
-                    <LineChart data={analytics.dailyClaims}>
+                    <LineChart data={analytics.dailyClaims ?? []}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="date" />
                       <YAxis />
                       <Tooltip />
-                      <Line 
-                        type="monotone" 
-                        dataKey="claims" 
-                        stroke="#6366f1" 
+                      <Line
+                        type="monotone"
+                        dataKey="claims"
+                        stroke="#6366f1"
                         strokeWidth={2}
                       />
                     </LineChart>
@@ -267,28 +268,35 @@ export default function CampaignDetailPage({ params }: CampaignDetailPageProps) 
               <Card>
                 <CardHeader>
                   <CardTitle>Claims Summary</CardTitle>
-                  <CardDescription>
-                    Breakdown of claim activity
-                  </CardDescription>
+                  <CardDescription>Breakdown of claim activity</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-600">Today</span>
-                    <span className="font-medium">{formatNumber(analytics.claims.today)}</span>
+                    <span className="font-medium">
+                      {formatNumber(analytics.claims?.today ?? 0)}
+                    </span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-600">This Week</span>
-                    <span className="font-medium">{formatNumber(analytics.claims.thisWeek)}</span>
+                    <span className="font-medium">
+                      {formatNumber(analytics.claims?.thisWeek ?? 0)}
+                    </span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-600">This Month</span>
-                    <span className="font-medium">{formatNumber(analytics.claims.thisMonth)}</span>
+                    <span className="font-medium">
+                      {formatNumber(analytics.claims?.thisMonth ?? 0)}
+                    </span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-600">All Time</span>
-                    <span className="font-medium">{formatNumber(analytics.claims.total)}</span>
+                    <span className="font-medium">
+                      {formatNumber(analytics.claims?.total ?? 0)}
+                    </span>
                   </div>
-                  {analytics.claims.remaining !== null && (
+
+                  {typeof analytics.claims?.remaining === 'number' && (
                     <div className="flex items-center justify-between pt-2 border-t">
                       <span className="text-sm text-gray-600">Remaining</span>
                       <span className="font-medium text-green-600">
@@ -306,9 +314,7 @@ export default function CampaignDetailPage({ params }: CampaignDetailPageProps) 
           <Card>
             <CardHeader>
               <CardTitle>Recent Claims</CardTitle>
-              <CardDescription>
-                Latest POAP claims for this campaign
-              </CardDescription>
+              <CardDescription>Latest POAP claims for this campaign</CardDescription>
             </CardHeader>
             <CardContent>
               {claimsLoading ? (
@@ -320,9 +326,7 @@ export default function CampaignDetailPage({ params }: CampaignDetailPageProps) 
               ) : claims.length === 0 ? (
                 <div className="text-center py-12">
                   <Users className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    No claims yet
-                  </h3>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No claims yet</h3>
                   <p className="text-gray-600">
                     Claims will appear here once users start claiming POAPs
                   </p>
@@ -376,12 +380,10 @@ export default function CampaignDetailPage({ params }: CampaignDetailPageProps) 
                             )}
                           </TableCell>
                           <TableCell>
-                            {claim.gasCost ? formatSOL(claim.gasCost) : '-'}
+                            {typeof claim.gasCost === 'number' ? formatSOL(claim.gasCost) : '-'}
                           </TableCell>
                           <TableCell>
-                            <div className="text-sm">
-                              {formatDateTime(claim.claimedAt)}
-                            </div>
+                            <div className="text-sm">{formatDateTime(claim.claimedAt)}</div>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -458,7 +460,7 @@ export default function CampaignDetailPage({ params }: CampaignDetailPageProps) 
   -d '{
     "userPublicKey": "USER_SOLANA_PUBLIC_KEY",
     "campaignId": "${params.id}",
-    "secretCode": "${campaign.secretCode || 'SECRET_CODE'}"
+    "secretCode": "${campaign.secretCode ?? 'SECRET_CODE'}"
   }'`}
                   </pre>
                   <Button
@@ -483,17 +485,19 @@ export default function CampaignDetailPage({ params }: CampaignDetailPageProps) 
                   {campaign.secretCode && (
                     <div>
                       <span className="text-gray-600">Secret Code:</span>
-                      <code className="ml-2 bg-gray-100 px-2 py-1 rounded">{campaign.secretCode}</code>
+                      <code className="ml-2 bg-gray-100 px-2 py-1 rounded">
+                        {campaign.secretCode}
+                      </code>
                     </div>
                   )}
                   <div>
                     <span className="text-gray-600">Max Claims:</span>
-                    <span className="ml-2">{campaign.maxClaims || 'Unlimited'}</span>
+                    <span className="ml-2">{typeof campaign.maxClaims === 'number' ? campaign.maxClaims : 'Unlimited'}</span>
                   </div>
                   <div>
                     <span className="text-gray-600">Status:</span>
-                    <Badge variant={campaign.isActive ? "success" : "secondary"} className="ml-2">
-                      {campaign.isActive ? "Active" : "Inactive"}
+                    <Badge variant={campaign.isActive ? 'success' : 'secondary'} className="ml-2">
+                      {campaign.isActive ? 'Active' : 'Inactive'}
                     </Badge>
                   </div>
                 </div>
@@ -513,9 +517,7 @@ export default function CampaignDetailPage({ params }: CampaignDetailPageProps) 
             <CardContent>
               <div className="text-center py-12">
                 <Clock className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  Settings Coming Soon
-                </h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Settings Coming Soon</h3>
                 <p className="text-gray-600">
                   Campaign settings and configuration options will be available in a future update
                 </p>
