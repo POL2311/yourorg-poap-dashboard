@@ -166,7 +166,14 @@ export function useUserPOAPs(userPublicKey: string, params?: { page?: number; li
 }
 
 // ===== DASHBOARD STATS =====
-
+export function usePublicCampaign(id: string) {
+  return useQuery({
+    queryKey: ['public-campaign', id],
+    queryFn: () => apiClient.getPublicCampaign(id),
+    enabled: !!id,
+    staleTime: 30000,
+  })
+}
 export function useDashboardStats() {
   const campaignsQuery = useCampaigns({ limit: 1000 })
   const relayerQuery = useRelayerStats()
