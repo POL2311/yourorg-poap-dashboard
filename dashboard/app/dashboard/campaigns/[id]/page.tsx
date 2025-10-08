@@ -15,11 +15,13 @@ import {
   TableRow 
 } from '@/components/ui/table'
 import { 
-  CartesianGrid,
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
   ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
   LineChart,
   Line
 } from 'recharts'
@@ -36,16 +38,18 @@ import {
   Zap
 } from 'lucide-react'
 import { formatDate, formatDateTime, formatNumber, formatSOL, truncateAddress } from '@/lib/utils'
+import { CampaignActions } from '@/components/campaigns/campaign-actions'
 import { toast } from 'react-hot-toast'
 import Link from 'next/link'
 
 interface CampaignDetailPageProps {
-  params: { id: string }
+  params: {
+    id: string
+  }
 }
 
 export default function CampaignDetailPage({ params }: CampaignDetailPageProps) {
   const [currentPage, setCurrentPage] = useState(1)
-
   const { data: campaignData, isLoading: campaignLoading } = useCampaign(params.id)
   const { data: analyticsData, isLoading: analyticsLoading } = useCampaignAnalytics(params.id)
   const { data: claimsData, isLoading: claimsLoading } = useCampaignClaims(params.id, {
@@ -55,27 +59,8 @@ export default function CampaignDetailPage({ params }: CampaignDetailPageProps) 
 
   const campaign = campaignData?.data
   const analytics = analyticsData?.data
-  const claims = claimsData?.data?.claims ?? []
+  const claims = claimsData?.data?.claims || []
   const pagination = claimsData?.data?.pagination
-
-  const copyClaimUrl = () => {
-    const url = `${window.location.origin}/claim/${params.id}`
-    navigator.clipboard.writeText(url)
-    toast.success('Claim URL copied to clipboard!')
-  }
-
-  const copyApiExample = () => {
-    const example = `curl -X POST ${process.env.NEXT_PUBLIC_API_URL}/api/poap/claim \\
-  -H "Authorization: ApiKey YOUR_API_KEY" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "userPublicKey": "USER_SOLANA_PUBLIC_KEY",
-    "campaignId": "${params.id}",
-    "secretCode": "${campaign?.secretCode ?? 'SECRET_CODE'}"
-  }'`
-    navigator.clipboard.writeText(example)
-    toast.success('API example copied to clipboard!')
-  }
 
   if (campaignLoading) {
     return (
@@ -112,8 +97,8 @@ export default function CampaignDetailPage({ params }: CampaignDetailPageProps) 
         <div>
           <div className="flex items-center space-x-3 mb-2">
             <h1 className="text-3xl font-bold text-gray-900">{campaign.name}</h1>
-            <Badge variant={campaign.isActive ? 'success' : 'secondary'}>
-              {campaign.isActive ? 'Active' : 'Inactive'}
+            <Badge variant={campaign.isActive ? "success" : "secondary"}>
+              {campaign.isActive ? "Active" : "Inactive"}
             </Badge>
           </div>
           {campaign.description && (
@@ -138,28 +123,15 @@ export default function CampaignDetailPage({ params }: CampaignDetailPageProps) 
             )}
           </div>
         </div>
-        <div className="flex items-center space-x-2">
-          <Button variant="outline" onClick={copyClaimUrl}>
-            <Copy className="mr-2 h-4 w-4" />
-            Copy Claim URL
-          </Button>
-          <Button variant="outline">
-            <Edit className="mr-2 h-4 w-4" />
-            Edit Campaign
-          </Button>
-          {campaign.externalUrl && (
-            <Button variant="outline" asChild>
-              <a href={campaign.externalUrl} target="_blank" rel="noopener noreferrer">
-                <ExternalLink className="mr-2 h-4 w-4" />
-                Visit Event
-              </a>
-            </Button>
-          )}
-        </div>
+        <CampaignActions
+          campaignId={campaign.id}
+          campaignName={campaign.name}
+          showViewDetails={false}
+        />
       </div>
 
       {/* Stats Cards */}
-      {!!analytics && (
+      {analytics && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -167,12 +139,11 @@ export default function CampaignDetailPage({ params }: CampaignDetailPageProps) 
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
-                {formatNumber(analytics.claims?.total ?? 0)}
-              </div>
+              <div className="text-2xl font-bold">{formatNumber(analytics.claims.total)}</div>
               <p className="text-xs text-muted-foreground">
-                {typeof analytics.claims?.remaining === 'number' &&
-                  `${formatNumber(analytics.claims.remaining)} remaining`}
+                {analytics.claims.remaining !== null && (
+                  `${formatNumber(analytics.claims.remaining)} remaining`
+                )}
               </p>
             </CardContent>
           </Card>
@@ -183,11 +154,9 @@ export default function CampaignDetailPage({ params }: CampaignDetailPageProps) 
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
-                {formatNumber(analytics.claims?.thisMonth ?? 0)}
-              </div>
+              <div className="text-2xl font-bold">{formatNumber(analytics.claims.thisMonth)}</div>
               <p className="text-xs text-muted-foreground">
-                {formatNumber(analytics.claims?.thisWeek ?? 0)} this week
+                {formatNumber(analytics.claims.thisWeek)} this week
               </p>
             </CardContent>
           </Card>
@@ -198,11 +167,9 @@ export default function CampaignDetailPage({ params }: CampaignDetailPageProps) 
               <Zap className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
-                {formatSOL(analytics.gas?.totalCost ?? 0)}
-              </div>
+              <div className="text-2xl font-bold">{formatSOL(analytics.gas.totalCost)}</div>
               <p className="text-xs text-muted-foreground">
-                {formatSOL(analytics.gas?.averageCost ?? 0)} avg per claim
+                {formatSOL(analytics.gas.averageCost)} avg per claim
               </p>
             </CardContent>
           </Card>
@@ -214,14 +181,13 @@ export default function CampaignDetailPage({ params }: CampaignDetailPageProps) 
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {typeof campaign.maxClaims === 'number' && campaign.maxClaims > 0
-                  ? `${(((analytics.claims?.total ?? 0) / campaign.maxClaims) * 100).toFixed(1)}%`
-                  : '∞'}
+                {campaign.maxClaims 
+                  ? `${((analytics.claims.total / campaign.maxClaims) * 100).toFixed(1)}%`
+                  : '∞'
+                }
               </div>
               <p className="text-xs text-muted-foreground">
-                {typeof campaign.maxClaims === 'number'
-                  ? `of ${formatNumber(campaign.maxClaims)} max`
-                  : 'No limit set'}
+                {campaign.maxClaims ? `of ${formatNumber(campaign.maxClaims)} max` : 'No limit set'}
               </p>
             </CardContent>
           </Card>
@@ -238,25 +204,27 @@ export default function CampaignDetailPage({ params }: CampaignDetailPageProps) 
         </TabsList>
 
         <TabsContent value="analytics" className="space-y-6">
-          {!!analytics && (
+          {analytics && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Daily Claims Chart */}
               <Card>
                 <CardHeader>
                   <CardTitle>Daily Claims</CardTitle>
-                  <CardDescription>Claims over the last 30 days</CardDescription>
+                  <CardDescription>
+                    Claims over the last 30 days
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={300}>
-                    <LineChart data={analytics.dailyClaims ?? []}>
+                    <LineChart data={analytics.dailyClaims}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="date" />
                       <YAxis />
                       <Tooltip />
-                      <Line
-                        type="monotone"
-                        dataKey="claims"
-                        stroke="#6366f1"
+                      <Line 
+                        type="monotone" 
+                        dataKey="claims" 
+                        stroke="#6366f1" 
                         strokeWidth={2}
                       />
                     </LineChart>
@@ -268,35 +236,28 @@ export default function CampaignDetailPage({ params }: CampaignDetailPageProps) 
               <Card>
                 <CardHeader>
                   <CardTitle>Claims Summary</CardTitle>
-                  <CardDescription>Breakdown of claim activity</CardDescription>
+                  <CardDescription>
+                    Breakdown of claim activity
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-600">Today</span>
-                    <span className="font-medium">
-                      {formatNumber(analytics.claims?.today ?? 0)}
-                    </span>
+                    <span className="font-medium">{formatNumber(analytics.claims.today)}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-600">This Week</span>
-                    <span className="font-medium">
-                      {formatNumber(analytics.claims?.thisWeek ?? 0)}
-                    </span>
+                    <span className="font-medium">{formatNumber(analytics.claims.thisWeek)}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-600">This Month</span>
-                    <span className="font-medium">
-                      {formatNumber(analytics.claims?.thisMonth ?? 0)}
-                    </span>
+                    <span className="font-medium">{formatNumber(analytics.claims.thisMonth)}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-600">All Time</span>
-                    <span className="font-medium">
-                      {formatNumber(analytics.claims?.total ?? 0)}
-                    </span>
+                    <span className="font-medium">{formatNumber(analytics.claims.total)}</span>
                   </div>
-
-                  {typeof analytics.claims?.remaining === 'number' && (
+                  {analytics.claims.remaining !== null && (
                     <div className="flex items-center justify-between pt-2 border-t">
                       <span className="text-sm text-gray-600">Remaining</span>
                       <span className="font-medium text-green-600">
@@ -314,7 +275,9 @@ export default function CampaignDetailPage({ params }: CampaignDetailPageProps) 
           <Card>
             <CardHeader>
               <CardTitle>Recent Claims</CardTitle>
-              <CardDescription>Latest POAP claims for this campaign</CardDescription>
+              <CardDescription>
+                Latest POAP claims for this campaign
+              </CardDescription>
             </CardHeader>
             <CardContent>
               {claimsLoading ? (
@@ -326,7 +289,9 @@ export default function CampaignDetailPage({ params }: CampaignDetailPageProps) 
               ) : claims.length === 0 ? (
                 <div className="text-center py-12">
                   <Users className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No claims yet</h3>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    No claims yet
+                  </h3>
                   <p className="text-gray-600">
                     Claims will appear here once users start claiming POAPs
                   </p>
@@ -380,10 +345,12 @@ export default function CampaignDetailPage({ params }: CampaignDetailPageProps) 
                             )}
                           </TableCell>
                           <TableCell>
-                            {typeof claim.gasCost === 'number' ? formatSOL(claim.gasCost) : '-'}
+                            {claim.gasCost ? formatSOL(claim.gasCost) : '-'}
                           </TableCell>
                           <TableCell>
-                            <div className="text-sm">{formatDateTime(claim.claimedAt)}</div>
+                            <div className="text-sm">
+                              {formatDateTime(claim.claimedAt)}
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -427,20 +394,23 @@ export default function CampaignDetailPage({ params }: CampaignDetailPageProps) 
         <TabsContent value="integration" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>API Integration</CardTitle>
+              <CardTitle>Public Claim Integration</CardTitle>
               <CardDescription>
-                Use these examples to integrate POAP claiming into your application
+                Share these links and QR codes for easy POAP claiming
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Claim URL */}
+              {/* Direct Claim URL */}
               <div>
-                <h4 className="font-medium mb-2">Direct Claim URL</h4>
+                <h4 className="font-medium mb-2">Public Claim Page</h4>
                 <div className="flex items-center space-x-2">
                   <code className="flex-1 bg-gray-100 p-3 rounded text-sm">
                     {`${window.location.origin}/claim/${params.id}`}
                   </code>
-                  <Button variant="outline" size="sm" onClick={copyClaimUrl}>
+                  <Button variant="outline" size="sm" onClick={() => {
+                    navigator.clipboard.writeText(`${window.location.origin}/claim/${params.id}`)
+                    toast.success('Claim URL copied!')
+                  }}>
                     <Copy className="h-4 w-4" />
                   </Button>
                 </div>
@@ -449,29 +419,14 @@ export default function CampaignDetailPage({ params }: CampaignDetailPageProps) 
                 </p>
               </div>
 
-              {/* API Example */}
+              {/* Campaign Actions */}
               <div>
-                <h4 className="font-medium mb-2">API Request Example</h4>
-                <div className="relative">
-                  <pre className="bg-gray-100 p-4 rounded text-sm overflow-x-auto">
-{`curl -X POST ${process.env.NEXT_PUBLIC_API_URL}/api/poap/claim \\
-  -H "Authorization: ApiKey YOUR_API_KEY" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "userPublicKey": "USER_SOLANA_PUBLIC_KEY",
-    "campaignId": "${params.id}",
-    "secretCode": "${campaign.secretCode ?? 'SECRET_CODE'}"
-  }'`}
-                  </pre>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="absolute top-2 right-2"
-                    onClick={copyApiExample}
-                  >
-                    <Copy className="h-4 w-4" />
-                  </Button>
-                </div>
+                <h4 className="font-medium mb-2">Quick Actions</h4>
+                <CampaignActions
+                  campaignId={campaign.id}
+                  campaignName={campaign.name}
+                  showViewDetails={false}
+                />
               </div>
 
               {/* Campaign Details */}
@@ -485,19 +440,17 @@ export default function CampaignDetailPage({ params }: CampaignDetailPageProps) 
                   {campaign.secretCode && (
                     <div>
                       <span className="text-gray-600">Secret Code:</span>
-                      <code className="ml-2 bg-gray-100 px-2 py-1 rounded">
-                        {campaign.secretCode}
-                      </code>
+                      <code className="ml-2 bg-gray-100 px-2 py-1 rounded">{campaign.secretCode}</code>
                     </div>
                   )}
                   <div>
                     <span className="text-gray-600">Max Claims:</span>
-                    <span className="ml-2">{typeof campaign.maxClaims === 'number' ? campaign.maxClaims : 'Unlimited'}</span>
+                    <span className="ml-2">{campaign.maxClaims || 'Unlimited'}</span>
                   </div>
                   <div>
                     <span className="text-gray-600">Status:</span>
-                    <Badge variant={campaign.isActive ? 'success' : 'secondary'} className="ml-2">
-                      {campaign.isActive ? 'Active' : 'Inactive'}
+                    <Badge variant={campaign.isActive ? "success" : "secondary"} className="ml-2">
+                      {campaign.isActive ? "Active" : "Inactive"}
                     </Badge>
                   </div>
                 </div>
@@ -517,7 +470,9 @@ export default function CampaignDetailPage({ params }: CampaignDetailPageProps) 
             <CardContent>
               <div className="text-center py-12">
                 <Clock className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Settings Coming Soon</h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  Settings Coming Soon
+                </h3>
                 <p className="text-gray-600">
                   Campaign settings and configuration options will be available in a future update
                 </p>
