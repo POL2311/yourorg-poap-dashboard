@@ -3,58 +3,41 @@
 import { useState } from 'react'
 import { useCampaigns, useCreateCampaign, useDeleteCampaign } from '@/hooks/use-api'
 import { useAuth } from '@/hooks/use-auth'
+import { Campaign } from '@/lib/types' // 👈 usa Campaign, no PublicCampaign
+
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow 
 } from '@/components/ui/table'
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
+  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog'
-import { 
-  Plus, 
-  Search, 
-  Calendar,
-  Users,
-  ExternalLink
-} from 'lucide-react'
+import { Plus, Search, Calendar, Users } from 'lucide-react'
 import { formatDate, formatNumber } from '@/lib/utils'
 import { CampaignForm } from '@/components/forms/campaign-form'
 import { CampaignActions } from '@/components/campaigns/campaign-actions'
-import Link from 'next/link'
 
 export default function CampaignsPage() {
   const [search, setSearch] = useState('')
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const { organizer } = useAuth()
-  
+
   const { data: campaignsData, isLoading } = useCampaigns({
     search: search || undefined,
     limit: 50,
   })
-  
+
   const createCampaignMutation = useCreateCampaign()
   const deleteCampaignMutation = useDeleteCampaign()
 
-  const campaigns = campaignsData?.data?.campaigns || []
+  const campaigns: Campaign[] = campaignsData?.data?.campaigns || []
 
   const handleCreateCampaign = async (data: any) => {
     const result = await createCampaignMutation.mutateAsync(data)
-    if (result.success) {
-      setIsCreateDialogOpen(false)
-    }
+    if (result.success) setIsCreateDialogOpen(false)
   }
 
   const handleDeleteCampaign = async (id: string) => {
@@ -101,9 +84,7 @@ export default function CampaignsPage() {
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>Create New Campaign</DialogTitle>
-              <DialogDescription>
-                Set up a new POAP campaign for your event
-              </DialogDescription>
+              <DialogDescription>Set up a new POAP campaign for your event</DialogDescription>
             </DialogHeader>
             <CampaignForm 
               onSubmit={handleCreateCampaign}
@@ -127,7 +108,7 @@ export default function CampaignsPage() {
             </p>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Claims</CardTitle>
@@ -137,9 +118,7 @@ export default function CampaignsPage() {
             <div className="text-2xl font-bold">
               {formatNumber(campaigns.reduce((sum, c) => sum + (c._count?.claims || 0), 0))}
             </div>
-            <p className="text-xs text-muted-foreground">
-              Across all campaigns
-            </p>
+            <p className="text-xs text-muted-foreground">Across all campaigns</p>
           </CardContent>
         </Card>
 
@@ -152,14 +131,12 @@ export default function CampaignsPage() {
             <div className="text-2xl font-bold">
               {campaigns.length} / {organizer?.tier === 'free' ? 3 : organizer?.tier === 'pro' ? 50 : 500}
             </div>
-            <p className="text-xs text-muted-foreground">
-              Campaigns used
-            </p>
+            <p className="text-xs text-muted-foreground">Campaigns used</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Search and Filters */}
+      {/* Search + Table */}
       <Card>
         <CardHeader>
           <div className="flex items-center space-x-4">
@@ -178,12 +155,8 @@ export default function CampaignsPage() {
           {campaigns.length === 0 ? (
             <div className="text-center py-12">
               <Calendar className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
-                No campaigns yet
-              </h3>
-              <p className="text-gray-600 mb-6">
-                Create your first POAP campaign to get started
-              </p>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No campaigns yet</h3>
+              <p className="text-gray-600 mb-6">Create your first POAP campaign to get started</p>
               <Button onClick={() => setIsCreateDialogOpen(true)}>
                 <Plus className="mr-2 h-4 w-4" />
                 Create Campaign
@@ -201,54 +174,57 @@ export default function CampaignsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {campaigns.map((campaign) => (
-                  <TableRow key={campaign.id}>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">{campaign.name}</div>
-                        {campaign.description && (
-                          <div className="text-sm text-gray-500 truncate max-w-xs">
-                            {campaign.description}
-                          </div>
-                        )}
-                        {campaign.location && (
-                          <div className="text-xs text-gray-400">
-                            📍 {campaign.location}
-                          </div>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm">
-                        {formatDate(campaign.eventDate)}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center space-x-2">
-                        <span className="font-medium">
-                          {formatNumber(campaign._count?.claims || 0)}
-                        </span>
-                        {campaign.maxClaims && (
-                          <span className="text-sm text-gray-500">
-                            / {formatNumber(campaign.maxClaims)}
+                {campaigns.map((campaign) => {
+                  const remaining =
+                    campaign.maxClaims != null
+                      ? Math.max(0, campaign.maxClaims - (campaign._count?.claims ?? 0))
+                      : null
+
+                  return (
+                    <TableRow key={campaign.id}>
+                      <TableCell>
+                        <div>
+                          <div className="font-medium">{campaign.name}</div>
+                          {campaign.description && (
+                            <div className="text-sm text-gray-500 truncate max-w-xs">
+                              {campaign.description}
+                            </div>
+                          )}
+                          {campaign.location && (
+                            <div className="text-xs text-gray-400">📍 {campaign.location}</div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm">{formatDate(campaign.eventDate)}</div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center space-x-2">
+                          <span className="font-medium">
+                            {formatNumber(campaign._count?.claims || 0)}
                           </span>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={campaign.isActive ? "success" : "secondary"}>
-                        {campaign.isActive ? "Active" : "Inactive"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <CampaignActions
-                        campaignId={campaign.id}
-                        campaignName={campaign.name}
-                        onDelete={() => handleDeleteCampaign(campaign.id)}
-                      />
-                    </TableCell>
-                  </TableRow>
-                ))}
+                          {campaign.maxClaims != null && (
+                            <span className="text-xs text-muted-foreground">
+                              {formatNumber(remaining ?? 0)} remaining
+                            </span>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={campaign.isActive ? 'success' : 'secondary'}>
+                          {campaign.isActive ? 'Active' : 'Inactive'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <CampaignActions
+                          campaignId={campaign.id}
+                          campaignName={campaign.name}
+                          onDelete={() => handleDeleteCampaign(campaign.id)}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
               </TableBody>
             </Table>
           )}

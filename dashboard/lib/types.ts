@@ -83,7 +83,12 @@ export interface ApiResponse<T = any> {
   error?: string
   details?: any
 }
-
+export interface PublicCampaign extends Omit<Campaign,
+  'organizerId' | 'createdAt' | 'updatedAt' | 'organizer'> {
+  isActive: boolean
+  _count?: { claims: number }
+  claimsRemaining: number | null
+}
 export interface PaginatedResponse<T> {
   success: boolean
   data?: {
@@ -111,7 +116,7 @@ export interface CampaignAnalytics {
     today: number
     thisWeek: number
     thisMonth: number
-    remaining?: number
+    remaining: number | null
   }
   gas: {
     totalCost: number

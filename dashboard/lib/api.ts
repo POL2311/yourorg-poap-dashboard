@@ -13,11 +13,11 @@ import {
   LoginForm,
   RegisterForm,
   CampaignForm,
-  ApiKeyForm
+  ApiKeyForm,
+  PublicCampaign
 } from './types'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
-baseURL: `${API_URL}/api`
 
 class ApiClient {
   private client: AxiosInstance
@@ -141,11 +141,10 @@ class ApiClient {
 
   // ===== PUBLIC ENDPOINTS =====
 
-  async getPublicCampaign(id: string): Promise<ApiResponse<Campaign>> {
-    const response: AxiosResponse<ApiResponse<Campaign>> = await this.client.get(`/campaigns/${id}/public`)
-    return response.data
+    async getPublicCampaign(id: string): Promise<ApiResponse<PublicCampaign>> {
+    const res = await this.client.get(`/campaigns/${id}/public`);
+    return res.data;
   }
-
   async getUserPOAPs(userPublicKey: string, params?: {
     page?: number
     limit?: number

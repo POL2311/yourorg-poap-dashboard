@@ -1,5 +1,5 @@
 'use client'
-
+import { PublicCampaign } from '@/lib/types'  // ✅
 import { useState } from 'react'
 import { useCampaign, useCampaignAnalytics, useCampaignClaims } from '@/hooks/use-api'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'

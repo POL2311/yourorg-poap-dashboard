@@ -10,27 +10,15 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Separator } from '@/components/ui/separator'
-import { 
-  Calendar, 
-  MapPin, 
-  Users, 
-  ExternalLink, 
-  CheckCircle, 
-  AlertTriangle,
-  Loader2,
-  Copy,
-  Zap
-} from 'lucide-react'
+import { Calendar, MapPin, Users, ExternalLink, CheckCircle, AlertTriangle, Loader2, Copy, Zap } from 'lucide-react'
 import { formatDate, formatNumber } from '@/lib/utils'
 import { apiClient } from '@/lib/api'
-import { Campaign } from '@/lib/types'
+import type { PublicCampaign } from '@/lib/types'   // 👈 usa PublicCampaign aquí
 import { toast } from 'react-hot-toast'
 import Link from 'next/link'
 
 interface ClaimPageProps {
-  params: {
-    id: string
-  }
+  params: { id: string }
 }
 
 interface ClaimState {
@@ -38,46 +26,32 @@ interface ClaimState {
   error?: string
   result?: {
     message: string
-    nft: {
-      mint: string
-      transactionSignature: string
-    }
+    nft: { mint: string; transactionSignature: string }
     explorerUrl: string
   }
 }
 
 export default function ClaimPage({ params }: ClaimPageProps) {
   const { publicKey, connected } = useWallet()
-  const [campaign, setCampaign] = useState<Campaign | null>(null)
+  const [campaign, setCampaign] = useState<PublicCampaign | null>(null)  // ✅ AHORA DENTRO
   const [loading, setLoading] = useState(true)
   const [secretCode, setSecretCode] = useState('')
   const [claimState, setClaimState] = useState<ClaimState>({ status: 'idle' })
 
-  // Load campaign data
   useEffect(() => {
-    const loadCampaign = async () => {
+    (async () => {
       try {
         const response = await apiClient.getPublicCampaign(params.id)
-        if (response.success && response.data) {
-          setCampaign(response.data)
-        } else {
-          setClaimState({
-            status: 'error',
-            error: 'Campaign not found or inactive'
-          })
-        }
-      } catch (error) {
-        setClaimState({
-          status: 'error',
-          error: 'Failed to load campaign'
-        })
+        if (response.success && response.data) setCampaign(response.data)
+        else setClaimState({ status: 'error', error: 'Campaign not found or inactive' })
+      } catch {
+        setClaimState({ status: 'error', error: 'Failed to load campaign' })
       } finally {
         setLoading(false)
       }
-    }
-
-    loadCampaign()
+    })()
   }, [params.id])
+
 
   const handleClaim = async () => {
     if (!connected || !publicKey) {
