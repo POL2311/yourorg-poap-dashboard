@@ -2,18 +2,10 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api'
-import { 
-  Campaign, 
-  ApiKey, 
-  CampaignForm, 
-  ApiKeyForm,
-  CampaignAnalytics,
-  Claim,
-  RelayerStats
-} from '@/lib/types'
+import { CampaignForm, ApiKeyForm } from '@/lib/types'
 import { toast } from 'react-hot-toast'
 
-// ===== CAMPAIGN HOOKS =====
+// ===== CAMPAIGNS =====
 
 export function useCampaigns(params?: {
   page?: number
@@ -24,7 +16,7 @@ export function useCampaigns(params?: {
   return useQuery({
     queryKey: ['campaigns', params],
     queryFn: () => apiClient.getCampaigns(params),
-    staleTime: 30000, // 30 seconds
+    staleTime: 30_000,
   })
 }
 
@@ -41,14 +33,11 @@ export function useCampaignAnalytics(id: string) {
     queryKey: ['campaign-analytics', id],
     queryFn: () => apiClient.getCampaignAnalytics(id),
     enabled: !!id,
-    refetchInterval: 60000, // Refresh every minute
+    refetchInterval: 60_000,
   })
 }
 
-export function useCampaignClaims(id: string, params?: {
-  page?: number
-  limit?: number
-}) {
+export function useCampaignClaims(id: string, params?: { page?: number; limit?: number }) {
   return useQuery({
     queryKey: ['campaign-claims', id, params],
     queryFn: () => apiClient.getCampaignClaims(id, params),
@@ -57,126 +46,118 @@ export function useCampaignClaims(id: string, params?: {
 }
 
 export function useCreateCampaign() {
-  const queryClient = useQueryClient()
-  
+  const qc = useQueryClient()
   return useMutation({
     mutationFn: (data: CampaignForm) => apiClient.createCampaign(data),
-    onSuccess: (response) => {
-      if (response.success) {
-        queryClient.invalidateQueries({ queryKey: ['campaigns'] })
+    onSuccess: (res) => {
+      if (res.success) {
+        qc.invalidateQueries({ queryKey: ['campaigns'] })
         toast.success('Campaign created successfully!')
       } else {
-        toast.error(response.error || 'Failed to create campaign')
+        toast.error(res.error || 'Failed to create campaign')
       }
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.error || 'Failed to create campaign')
+    onError: (err: any) => {
+      toast.error(err?.response?.data?.error || 'Failed to create campaign')
     },
   })
 }
 
 export function useUpdateCampaign() {
-  const queryClient = useQueryClient()
-  
+  const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<CampaignForm> }) => 
+    mutationFn: ({ id, data }: { id: string; data: Partial<CampaignForm> }) =>
       apiClient.updateCampaign(id, data),
-    onSuccess: (response, { id }) => {
-      if (response.success) {
-        queryClient.invalidateQueries({ queryKey: ['campaigns'] })
-        queryClient.invalidateQueries({ queryKey: ['campaign', id] })
+    onSuccess: (res, { id }) => {
+      if (res.success) {
+        qc.invalidateQueries({ queryKey: ['campaigns'] })
+        qc.invalidateQueries({ queryKey: ['campaign', id] })
         toast.success('Campaign updated successfully!')
       } else {
-        toast.error(response.error || 'Failed to update campaign')
+        toast.error(res.error || 'Failed to update campaign')
       }
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.error || 'Failed to update campaign')
+    onError: (err: any) => {
+      toast.error(err?.response?.data?.error || 'Failed to update campaign')
     },
   })
 }
 
 export function useDeleteCampaign() {
-  const queryClient = useQueryClient()
-  
+  const qc = useQueryClient()
   return useMutation({
     mutationFn: (id: string) => apiClient.deleteCampaign(id),
-    onSuccess: (response) => {
-      if (response.success) {
-        queryClient.invalidateQueries({ queryKey: ['campaigns'] })
+    onSuccess: (res) => {
+      if (res.success) {
+        qc.invalidateQueries({ queryKey: ['campaigns'] })
         toast.success('Campaign deleted successfully!')
       } else {
-        toast.error(response.error || 'Failed to delete campaign')
+        toast.error(res.error || 'Failed to delete campaign')
       }
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.error || 'Failed to delete campaign')
+    onError: (err: any) => {
+      toast.error(err?.response?.data?.error || 'Failed to delete campaign')
     },
   })
 }
 
-// ===== API KEY HOOKS =====
+// ===== API KEYS =====
 
 export function useApiKeys() {
   return useQuery({
     queryKey: ['api-keys'],
     queryFn: () => apiClient.getApiKeys(),
-    staleTime: 60000, // 1 minute
+    staleTime: 60_000,
   })
 }
 
 export function useCreateApiKey() {
-  const queryClient = useQueryClient()
-  
+  const qc = useQueryClient()
   return useMutation({
     mutationFn: (data: ApiKeyForm) => apiClient.createApiKey(data),
-    onSuccess: (response) => {
-      if (response.success) {
-        queryClient.invalidateQueries({ queryKey: ['api-keys'] })
+    onSuccess: (res) => {
+      if (res.success) {
+        qc.invalidateQueries({ queryKey: ['api-keys'] })
         toast.success('API key created successfully!')
       } else {
-        toast.error(response.error || 'Failed to create API key')
+        toast.error(res.error || 'Failed to create API key')
       }
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.error || 'Failed to create API key')
+    onError: (err: any) => {
+      toast.error(err?.response?.data?.error || 'Failed to create API key')
     },
   })
 }
 
 export function useDeactivateApiKey() {
-  const queryClient = useQueryClient()
-  
+  const qc = useQueryClient()
   return useMutation({
     mutationFn: (id: string) => apiClient.deactivateApiKey(id),
-    onSuccess: (response) => {
-      if (response.success) {
-        queryClient.invalidateQueries({ queryKey: ['api-keys'] })
+    onSuccess: (res) => {
+      if (res.success) {
+        qc.invalidateQueries({ queryKey: ['api-keys'] })
         toast.success('API key deactivated successfully!')
       } else {
-        toast.error(response.error || 'Failed to deactivate API key')
+        toast.error(res.error || 'Failed to deactivate API key')
       }
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.error || 'Failed to deactivate API key')
+    onError: (err: any) => {
+      toast.error(err?.response?.data?.error || 'Failed to deactivate API key')
     },
   })
 }
 
-// ===== SYSTEM HOOKS =====
+// ===== RELAYER & USER POAPs =====
 
 export function useRelayerStats() {
   return useQuery({
     queryKey: ['relayer-stats'],
     queryFn: () => apiClient.getRelayerStats(),
-    refetchInterval: 30000, // Refresh every 30 seconds
+    refetchInterval: 30_000,
   })
 }
 
-export function useUserPOAPs(userPublicKey: string, params?: {
-  page?: number
-  limit?: number
-}) {
+export function useUserPOAPs(userPublicKey: string, params?: { page?: number; limit?: number }) {
   return useQuery({
     queryKey: ['user-poaps', userPublicKey, params],
     queryFn: () => apiClient.getUserPOAPs(userPublicKey, params),
@@ -184,20 +165,19 @@ export function useUserPOAPs(userPublicKey: string, params?: {
   })
 }
 
-// ===== DASHBOARD STATS HOOK =====
+// ===== DASHBOARD STATS =====
 
 export function useDashboardStats() {
-  const campaignsQuery = useCampaigns({ limit: 1000 }) // Get all campaigns for stats
+  const campaignsQuery = useCampaigns({ limit: 1000 })
   const relayerQuery = useRelayerStats()
-  
-  const stats = {
+
+  return {
     totalCampaigns: campaignsQuery.data?.data?.campaigns?.length || 0,
     activeCampaigns: campaignsQuery.data?.data?.campaigns?.filter(c => c.isActive).length || 0,
-    totalClaims: campaignsQuery.data?.data?.campaigns?.reduce((sum, c) => sum + (c._count?.claims || 0), 0) || 0,
+    totalClaims:
+      campaignsQuery.data?.data?.campaigns?.reduce((sum, c) => sum + (c._count?.claims || 0), 0) || 0,
     relayerBalance: relayerQuery.data?.data?.balance || 0,
     isLoading: campaignsQuery.isLoading || relayerQuery.isLoading,
     error: campaignsQuery.error || relayerQuery.error,
   }
-  
-  return stats
 }
