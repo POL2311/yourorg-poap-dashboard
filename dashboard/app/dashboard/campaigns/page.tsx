@@ -1,70 +1,49 @@
 'use client'
 
 import { useState } from 'react'
-import { useCampaigns, useCreateCampaign, useDeleteCampaign, useUpdateCampaign } from '@/hooks/use-api'
+import { useCampaigns, useCreateCampaign, useDeleteCampaign } from '@/hooks/use-api'
 import { useAuth } from '@/hooks/use-auth'
+import { Campaign } from '@/lib/types' // 👈 usa Campaign, no PublicCampaign
+
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import { Plus, Search, MoreHorizontal, Edit, Trash2, Eye, Calendar, Users, Copy } from 'lucide-react'
+import { 
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow 
+} from '@/components/ui/table'
+import {
+  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger,
+} from '@/components/ui/dialog'
+import { Plus, Search, Calendar, Users } from 'lucide-react'
 import { formatDate, formatNumber } from '@/lib/utils'
 import { CampaignForm } from '@/components/forms/campaign-form'
-import Link from 'next/link'
-import { toast } from 'react-hot-toast'
+import { CampaignActions } from '@/components/campaigns/campaign-actions'
 
 export default function CampaignsPage() {
   const [search, setSearch] = useState('')
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
-
-  // edición
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
-  const [editingCampaign, setEditingCampaign] = useState<any | null>(null)
-
   const { organizer } = useAuth()
 
-  const { data: campaignsData, isLoading } = useCampaigns({ search: search || undefined, limit: 50 })
+  const { data: campaignsData, isLoading } = useCampaigns({
+    search: search || undefined,
+    limit: 50,
+  })
+
   const createCampaignMutation = useCreateCampaign()
   const deleteCampaignMutation = useDeleteCampaign()
-  const updateCampaignMutation = useUpdateCampaign()
 
-  const campaigns = campaignsData?.data?.campaigns || []
+  const campaigns: Campaign[] = campaignsData?.data?.campaigns || []
 
   const handleCreateCampaign = async (data: any) => {
-    const res = await createCampaignMutation.mutateAsync(data)
-    if (res?.success) setIsCreateDialogOpen(false) // el toast lo hace el hook
-  }
-
-  const handleOpenEdit = (c: any) => {
-    setEditingCampaign(c)
-    setIsEditDialogOpen(true)
-  }
-
-  const handleEditCampaign = async (data: any) => {
-    if (!editingCampaign?.id) return
-    const res = await updateCampaignMutation.mutateAsync({ id: editingCampaign.id, data })
-    if (res?.success) {
-      // el hook ya mostró el toast
-      setIsEditDialogOpen(false)
-      setEditingCampaign(null)
-    }
-    // si falla, el hook también muestra el toast de error
+    const result = await createCampaignMutation.mutateAsync(data)
+    if (result.success) setIsCreateDialogOpen(false)
   }
 
   const handleDeleteCampaign = async (id: string) => {
     if (confirm('Are you sure you want to delete this campaign?')) {
       await deleteCampaignMutation.mutateAsync(id)
-      // toasts los maneja el hook
     }
-  }
-
-  const copyClaimUrl = (campaignId: string) => {
-    const url = `${window.location.origin}/claim/${campaignId}`
-    navigator.clipboard.writeText(url)
-    toast.success('Claim URL copied to clipboard!')
   }
 
   if (isLoading) {
@@ -78,7 +57,7 @@ export default function CampaignsPage() {
         </div>
         <div className="animate-pulse space-y-4">
           {[...Array(5)].map((_, i) => (
-            <div key={i} className="h-16 bg-gray-200 rounded" />
+            <div key={i} className="h-16 bg-gray-200 rounded"></div>
           ))}
         </div>
       </div>
@@ -91,10 +70,10 @@ export default function CampaignsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Campaigns</h1>
-          <p className="text-gray-600 mt-1">Manage your POAP campaigns and track their performance</p>
+          <p className="text-gray-600 mt-1">
+            Manage your POAP campaigns and track their performance
+          </p>
         </div>
-
-        {/* Crear */}
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
             <Button>
@@ -107,11 +86,9 @@ export default function CampaignsPage() {
               <DialogTitle>Create New Campaign</DialogTitle>
               <DialogDescription>Set up a new POAP campaign for your event</DialogDescription>
             </DialogHeader>
-            <CampaignForm
-              mode="create"
+            <CampaignForm 
               onSubmit={handleCreateCampaign}
               isLoading={createCampaignMutation.isPending}
-              submitLabel="Create Campaign"
             />
           </DialogContent>
         </Dialog>
@@ -126,7 +103,9 @@ export default function CampaignsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{campaigns.length}</div>
-            <p className="text-xs text-muted-foreground">{campaigns.filter(c => c.isActive).length} active</p>
+            <p className="text-xs text-muted-foreground">
+              {campaigns.filter(c => c.isActive).length} active
+            </p>
           </CardContent>
         </Card>
 
@@ -172,7 +151,6 @@ export default function CampaignsPage() {
             </div>
           </div>
         </CardHeader>
-
         <CardContent>
           {campaigns.length === 0 ? (
             <div className="text-center py-12">
@@ -196,105 +174,62 @@ export default function CampaignsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {campaigns.map((c) => (
-                  <TableRow key={c.id}>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">{c.name}</div>
-                        {c.description && <div className="text-sm text-gray-500 truncate max-w-xs">{c.description}</div>}
-                        {c.location && <div className="text-xs text-gray-400">📍 {c.location}</div>}
-                      </div>
-                    </TableCell>
+                {campaigns.map((campaign) => {
+                  const remaining =
+                    campaign.maxClaims != null
+                      ? Math.max(0, campaign.maxClaims - (campaign._count?.claims ?? 0))
+                      : null
 
-                    <TableCell>
-                      <div className="text-sm">{formatDate(c.eventDate)}</div>
-                    </TableCell>
-
-                    <TableCell>
-                      <div className="flex items-center space-x-2">
-                        <span className="font-medium">{formatNumber(c._count?.claims || 0)}</span>
-                        {c.maxClaims && <span className="text-sm text-gray-500">/ {formatNumber(c.maxClaims)}</span>}
-                      </div>
-                    </TableCell>
-
-                    <TableCell>
-                      <Badge variant={c.isActive ? 'success' : 'secondary'}>
-                        {c.isActive ? 'Active' : 'Inactive'}
-                      </Badge>
-                    </TableCell>
-
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem asChild>
-                            <Link href={`/dashboard/campaigns/${c.id}`}>
-                              <Eye className="mr-2 h-4 w-4" />
-                              View Details
-                            </Link>
-                          </DropdownMenuItem>
-
-                          <DropdownMenuItem onClick={() => copyClaimUrl(c.id)}>
-                            <Copy className="mr-2 h-4 w-4" />
-                            Copy Claim URL
-                          </DropdownMenuItem>
-
-                          <DropdownMenuItem onClick={() => handleOpenEdit(c)}>
-                            <Edit className="mr-2 h-4 w-4" />
-                            Edit
-                          </DropdownMenuItem>
-
-                          <DropdownMenuItem
-                            onClick={() => handleDeleteCampaign(c.id)}
-                            className="text-red-600"
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                  return (
+                    <TableRow key={campaign.id}>
+                      <TableCell>
+                        <div>
+                          <div className="font-medium">{campaign.name}</div>
+                          {campaign.description && (
+                            <div className="text-sm text-gray-500 truncate max-w-xs">
+                              {campaign.description}
+                            </div>
+                          )}
+                          {campaign.location && (
+                            <div className="text-xs text-gray-400">📍 {campaign.location}</div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm">{formatDate(campaign.eventDate)}</div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center space-x-2">
+                          <span className="font-medium">
+                            {formatNumber(campaign._count?.claims || 0)}
+                          </span>
+                          {campaign.maxClaims != null && (
+                            <span className="text-xs text-muted-foreground">
+                              {formatNumber(remaining ?? 0)} remaining
+                            </span>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={campaign.isActive ? 'success' : 'secondary'}>
+                          {campaign.isActive ? 'Active' : 'Inactive'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <CampaignActions
+                          campaignId={campaign.id}
+                          campaignName={campaign.name}
+                          onDelete={() => handleDeleteCampaign(campaign.id)}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
               </TableBody>
             </Table>
           )}
         </CardContent>
       </Card>
-
-      {/* Edit dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Edit Campaign</DialogTitle>
-            <DialogDescription>Update your campaign details</DialogDescription>
-          </DialogHeader>
-
-          {editingCampaign && (
-            <CampaignForm
-              mode="edit"
-              submitLabel="Save Changes"
-              isLoading={updateCampaignMutation.isPending}
-              defaultValues={{
-                name: editingCampaign.name,
-                slug: editingCampaign.slug ?? '',
-                description: editingCampaign.description ?? '',
-                location: editingCampaign.location ?? '',
-                imageUrl: editingCampaign.imageUrl ?? '',
-                externalUrl: editingCampaign.externalUrl ?? '',
-                secretCode: editingCampaign.secretCode ?? '',
-                maxClaims: editingCampaign.maxClaims ?? undefined,
-                eventDate: editingCampaign.eventDate,
-              }}
-              onSubmit={handleEditCampaign}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }
