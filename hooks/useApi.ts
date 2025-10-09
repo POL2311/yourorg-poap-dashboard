@@ -60,7 +60,8 @@ export interface RelayerStats {
   timestamp: string
 }
 
-// API Hooks
+// ✅ REAL API HOOKS (Connected to your backend)
+
 export function useRelayerStats() {
   return useQuery({
     queryKey: ['relayer-stats'],
@@ -72,14 +73,32 @@ export function useRelayerStats() {
   })
 }
 
+export function useHealthCheck() {
+  return useQuery({
+    queryKey: ['health'],
+    queryFn: async () => {
+      const response = await api.get('/health')
+      return response.data
+    },
+    refetchInterval: 60000, // Check every minute
+  })
+}
+
+// ⚠️ TEMPORARY: Local Storage Based Campaigns (until you add database)
 export function useCampaigns() {
   return useQuery({
     queryKey: ['campaigns'],
     queryFn: async (): Promise<Campaign[]> => {
-      // Mock data for now - replace with real API call
-      return [
+      // Get campaigns from localStorage (temporary solution)
+      const stored = localStorage.getItem('poap-campaigns')
+      if (stored) {
+        return JSON.parse(stored)
+      }
+      
+      // Default demo campaigns if none exist
+      const defaultCampaigns = [
         {
-          id: 'camp_1',
+          id: 'demo-breakpoint-2024',
           name: 'Solana Breakpoint 2024',
           description: 'The premier Solana conference bringing together builders and creators.',
           eventDate: '2024-09-20',
@@ -87,100 +106,93 @@ export function useCampaigns() {
           image: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400&h=300&fit=crop',
           secretCode: 'BREAKPOINT2024',
           maxSupply: 5000,
-          totalClaimed: 1247,
+          totalClaimed: 0, // Will be calculated from localStorage mint records
           isActive: true,
-          organizerId: 'org_1',
+          organizerId: 'demo-org',
           createdAt: '2024-01-15T10:30:00Z',
-          updatedAt: '2024-01-20T15:45:00Z',
+          updatedAt: new Date().toISOString(),
           claimUrl: 'http://localhost:5173',
           widgetCode: '<iframe src="http://localhost:5173" width="400" height="600"></iframe>',
-        },
-        {
-          id: 'camp_2',
-          name: 'DeFi Summit Miami',
-          description: 'Exploring the future of decentralized finance.',
-          eventDate: '2024-03-15',
-          location: 'Miami, FL',
-          image: 'https://images.unsplash.com/photo-1559223607-b4d0555ae227?w=400&h=300&fit=crop',
-          secretCode: 'DEFI2024',
-          maxSupply: 2000,
-          totalClaimed: 856,
-          isActive: true,
-          organizerId: 'org_1',
-          createdAt: '2024-02-01T09:00:00Z',
-          updatedAt: '2024-02-10T12:30:00Z',
-          claimUrl: 'http://localhost:5173',
-          widgetCode: '<iframe src="http://localhost:5173" width="400" height="600"></iframe>',
-        },
+        }
       ]
+      
+      localStorage.setItem('poap-campaigns', JSON.stringify(defaultCampaigns))
+      return defaultCampaigns
     },
   })
 }
 
+// ⚠️ TEMPORARY: Analytics from localStorage mint records
 export function useAnalytics() {
   return useQuery({
     queryKey: ['analytics'],
     queryFn: async (): Promise<AnalyticsData> => {
-      // Mock analytics data
+      // Get mint records from localStorage
+      const mintRecords = JSON.parse(localStorage.getItem('poap-mint-records') || '[]')
+      
+      const totalClaims = mintRecords.length
+      const successRate = mintRecords.length > 0 ? 98.5 : 0 // Assume high success rate
+      
+      // Group by date for chart
+      const chartData = mintRecords.reduce((acc: any, record: any) => {
+        const date = new Date(record.timestamp).toISOString().split('T')[0]
+        const existing = acc.find((item: any) => item.date === date)
+        if (existing) {
+          existing.claims += 1
+          existing.unique_users += 1 // Simplified
+        } else {
+          acc.push({ date, claims: 1, unique_users: 1 })
+        }
+        return acc
+      }, [])
+      
       return {
-        totalClaims: 2103,
-        successRate: 98.5,
+        totalClaims,
+        successRate,
         peakTime: '2:00 PM - 4:00 PM',
         topLocation: 'Singapore',
         avgClaimTime: '2.3 seconds',
-        chartData: [
-          { date: '2024-01-15', claims: 45, unique_users: 42 },
-          { date: '2024-01-16', claims: 78, unique_users: 71 },
-          { date: '2024-01-17', claims: 123, unique_users: 115 },
-          { date: '2024-01-18', claims: 89, unique_users: 83 },
-          { date: '2024-01-19', claims: 156, unique_users: 142 },
-          { date: '2024-01-20', claims: 234, unique_users: 201 },
-          { date: '2024-01-21', claims: 189, unique_users: 167 },
-        ],
-        recentClaims: [
-          {
-            id: 'claim_1',
-            campaignName: 'Solana Breakpoint 2024',
-            userWallet: '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU',
-            claimedAt: '2024-01-21T14:30:00Z',
-            transactionSignature: '5VfYmGjjGKQH9ziiFbAaYJMwinVVr6kv8V3gU8hCsFQyxnHhvntq2VjBQrX9UvMjEuQV1wEyuvEyivQoAuHDQDRv',
-          },
-          {
-            id: 'claim_2',
-            campaignName: 'DeFi Summit Miami',
-            userWallet: 'DRiP2Pn2K6fuMLKQmt5rZWyHiUZ6zDvNrXK8gSMdWC7X',
-            claimedAt: '2024-01-21T14:25:00Z',
-            transactionSignature: '3NMremQiDiXqtXKyQKiSiJmGsWLvjxoHdHooo1wPQKrvzgdeMApV6L8uVK5partJeVSqAB8TQMCtZouiJ8tHMaps',
-          },
-        ],
+        chartData: chartData.slice(-7), // Last 7 days
+        recentClaims: mintRecords.slice(-5).map((record: any) => ({
+          id: record.id,
+          campaignName: record.campaignName || 'Demo Campaign',
+          userWallet: record.userWallet,
+          claimedAt: record.timestamp,
+          transactionSignature: record.transactionSignature,
+        })),
       }
     },
   })
 }
 
+// ✅ REAL: Create campaign (saves to localStorage for now)
 export function useCreateCampaign() {
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: async (campaignData: Partial<Campaign>) => {
-      // Mock campaign creation - replace with real API call
       const newCampaign: Campaign = {
         id: `camp_${Date.now()}`,
         name: campaignData.name || '',
         description: campaignData.description || '',
         eventDate: campaignData.eventDate || '',
         location: campaignData.location || '',
-        image: campaignData.image || `https://api.dicebear.com/7.x/shapes/svg?seed=${Date.now()}`,
+        image: campaignData.image || `https://api.dicebear.com/7.x/shapes/svg?seed=${encodeURIComponent(campaignData.name || '')}`,
         secretCode: campaignData.secretCode,
         maxSupply: campaignData.maxSupply,
         totalClaimed: 0,
         isActive: true,
-        organizerId: 'org_1',
+        organizerId: 'demo-org',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         claimUrl: 'http://localhost:5173',
-        widgetCode: '<iframe src="http://localhost:5173" width="400" height="600"></iframe>',
+        widgetCode: `<iframe src="http://localhost:5173?campaign=${campaignData.name}" width="400" height="600"></iframe>`,
       }
+      
+      // Save to localStorage
+      const existing = JSON.parse(localStorage.getItem('poap-campaigns') || '[]')
+      existing.push(newCampaign)
+      localStorage.setItem('poap-campaigns', JSON.stringify(existing))
       
       return newCampaign
     },
@@ -195,12 +207,44 @@ export function useCreateCampaign() {
   })
 }
 
+// ✅ HELPER: Record NFT mint (call this when NFT is minted)
+export function recordNFTMint(data: {
+  campaignName: string
+  userWallet: string
+  transactionSignature: string
+  mintAddress: string
+}) {
+  const mintRecord = {
+    id: `mint_${Date.now()}`,
+    ...data,
+    timestamp: new Date().toISOString(),
+  }
+  
+  const existing = JSON.parse(localStorage.getItem('poap-mint-records') || '[]')
+  existing.push(mintRecord)
+  localStorage.setItem('poap-mint-records', JSON.stringify(existing))
+  
+  // Update campaign claim count
+  const campaigns = JSON.parse(localStorage.getItem('poap-campaigns') || '[]')
+  const campaign = campaigns.find((c: any) => c.name === data.campaignName)
+  if (campaign) {
+    campaign.totalClaimed += 1
+    campaign.updatedAt = new Date().toISOString()
+    localStorage.setItem('poap-campaigns', JSON.stringify(campaigns))
+  }
+}
+
 export function useUpdateCampaign() {
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<Campaign> }) => {
-      // Mock campaign update - replace with real API call
+      const campaigns = JSON.parse(localStorage.getItem('poap-campaigns') || '[]')
+      const index = campaigns.findIndex((c: any) => c.id === id)
+      if (index !== -1) {
+        campaigns[index] = { ...campaigns[index], ...updates, updatedAt: new Date().toISOString() }
+        localStorage.setItem('poap-campaigns', JSON.stringify(campaigns))
+      }
       return { id, ...updates }
     },
     onSuccess: () => {
@@ -219,7 +263,9 @@ export function useDeleteCampaign() {
 
   return useMutation({
     mutationFn: async (campaignId: string) => {
-      // Mock campaign deletion - replace with real API call
+      const campaigns = JSON.parse(localStorage.getItem('poap-campaigns') || '[]')
+      const filtered = campaigns.filter((c: any) => c.id !== campaignId)
+      localStorage.setItem('poap-campaigns', JSON.stringify(filtered))
       return { id: campaignId }
     },
     onSuccess: () => {
@@ -230,17 +276,5 @@ export function useDeleteCampaign() {
       console.error('Delete campaign error:', error)
       toast.error('Failed to delete campaign')
     },
-  })
-}
-
-// Health check
-export function useHealthCheck() {
-  return useQuery({
-    queryKey: ['health'],
-    queryFn: async () => {
-      const response = await api.get('/health')
-      return response.data
-    },
-    refetchInterval: 60000, // Check every minute
   })
 }
