@@ -383,7 +383,7 @@ export default POAPWidget`
                 <code>{generateWordPressCode()}</code>
               </pre>
               <div className="text-sm text-muted-foreground">
-                <p>📝 Note: Requires POAP Infrastructure WordPress plugin</p>
+                <p>📝 Note: Requires Gasless infrastructure WordPress plugin</p>
               </div>
             </TabsContent>
 

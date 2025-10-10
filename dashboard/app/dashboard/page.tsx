@@ -193,7 +193,7 @@ export default function DashboardPage() {
             <CardHeader>
               <CardTitle className="text-indigo-900">Getting Started</CardTitle>
               <CardDescription className="text-indigo-700">
-                New to POAP Infrastructure? Start here!
+                New to Infrastructure?
               </CardDescription>
             </CardHeader>
             <CardContent>

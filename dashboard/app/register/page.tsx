@@ -81,10 +81,10 @@ export default function RegisterPage() {
         <div className="text-center mb-8">
           <div className="flex items-center justify-center space-x-2 mb-4">
             <Zap className="h-8 w-8 text-indigo-600" />
-            <span className="text-2xl font-bold text-gray-900">POAP Infrastructure</span>
+            <span className="text-2xl font-bold text-gray-900">Gasless infrastructure</span>
           </div>
           <h1 className="text-2xl font-bold text-gray-900">Create your account</h1>
-          <p className="text-gray-600 mt-2">Start managing POAP campaigns today</p>
+          <p className="text-gray-600 mt-2">Start managing campaigns today</p>
         </div>
 
         {/* Registration Form */}
