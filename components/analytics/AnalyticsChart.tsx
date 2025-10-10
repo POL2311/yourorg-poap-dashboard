@@ -2,7 +2,7 @@ import React from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs'
-import { useAnalytics } from '../../hooks/use-api'
+import { useAnalytics } from '../../hooks/useApi'
 import { TrendingUp, Users, Clock, MapPin } from 'lucide-react'
 
 interface AnalyticsChartProps {
