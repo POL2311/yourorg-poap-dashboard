@@ -1,5 +1,5 @@
 'use client'
-
+import { DebugAuth } from '@/components/debug/DebugAuth'
 import { useState } from 'react'
 import { useCampaigns, useCreateCampaign, useDeleteCampaign } from '@/hooks/use-api'
 import { useAuth } from '@/hooks/use-auth'
@@ -68,6 +68,7 @@ export default function CampaignsPage() {
   return (
     <div className="space-y-6">
       {/* 🔍 Debug Component - Remove this after fixing */}
+      <DebugAuth />
       <DebugCampaigns />
 
       {/* Header */}

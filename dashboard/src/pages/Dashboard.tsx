@@ -1,7 +1,7 @@
 // dashboard/src/pages/Dashboard.tsx - UPDATED ORGANIZER DASHBOARD
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
-import { useCampaigns, useAnalytics } from '../../hooks/useApi';
+import { useCampaigns, useAnalytics } from '../../hooks/use-api';
 import { CampaignCreator } from '../../components/forms/CampaignCreator';
 import { AnalyticsChart } from '../../components/analytics/AnalyticsChart';
 import { WidgetGenerator } from '../../components/widgets/WidgetGenerator';
