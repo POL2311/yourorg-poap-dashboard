@@ -17,7 +17,8 @@ import {
   PublicCampaign
 } from './types'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+// ✅ Fixed: Add fallback for API URL
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
 class ApiClient {
   private client: AxiosInstance
