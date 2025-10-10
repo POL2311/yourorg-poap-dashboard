@@ -30,7 +30,7 @@ export default function HomePage() {
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <Zap className="h-8 w-8 text-indigo-600" />
-            <span className="text-xl font-bold text-gray-900">POAP Infrastructure</span>
+            <span className="text-xl font-bold text-gray-900">Gasless infrastructure</span>
           </div>
           <div className="flex items-center space-x-4">
             <Link href="/login">
@@ -279,7 +279,7 @@ export default function HomePage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <Zap className="h-6 w-6" />
-              <span className="font-bold">POAP Infrastructure</span>
+              <span className="font-bold">Gasless infrastructure</span>
             </div>
             <div className="text-sm text-gray-400">
               Built on Solana • Powered by DevAI

@@ -192,12 +192,6 @@ try {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="secretCode">Secret Code</Label>
-          <Input id="secretCode" placeholder="Optional secret for claiming" {...register('secretCode')} />
-          {errors.secretCode && <p className="text-sm text-red-600">{errors.secretCode.message}</p>}
-        </div>
-
-        <div className="space-y-2">
           <Label htmlFor="maxClaims">Max Claims</Label>
           <Input id="maxClaims" type="number" min={1} placeholder="e.g. 100" {...register('maxClaims')} />
           {errors.maxClaims && <p className="text-sm text-red-600">{errors.maxClaims.message}</p>}
