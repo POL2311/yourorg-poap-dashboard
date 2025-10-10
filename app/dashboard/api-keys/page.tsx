@@ -386,14 +386,14 @@ export default function ApiKeysPage() {
           <div>
             <h4 className="font-medium mb-2">Example POAP Claim Request</h4>
             <code className="block bg-gray-100 p-3 rounded text-sm whitespace-pre-wrap">
-{`curl -X POST ${process.env.NEXT_PUBLIC_API_URL}/api/poap/claim \\
-  -H "Authorization: ApiKey YOUR_API_KEY_HERE" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "userPublicKey": "USER_SOLANA_PUBLIC_KEY",
-    "campaignId": "CAMPAIGN_ID",
-    "secretCode": "EVENT_SECRET_CODE"
-  }'`}
+              {`curl -X POST ${process.env.NEXT_PUBLIC_API_URL}/api/poap/claim \\
+                -H "Authorization: ApiKey YOUR_API_KEY_HERE" \\
+                -H "Content-Type: application/json" \\
+                -d '{
+                  "userPublicKey": "USER_SOLANA_PUBLIC_KEY",
+                  "campaignId": "CAMPAIGN_ID",
+                  "secretCode": "EVENT_SECRET_CODE"
+                }'`}
             </code>
           </div>
 
