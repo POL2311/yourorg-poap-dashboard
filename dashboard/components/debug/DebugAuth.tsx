@@ -20,7 +20,7 @@ export function DebugAuth() {
         const data = await response.json()
         setApiTest({ status: response.status, data })
       } catch (error) {
-        setApiTest({ error: error.message })
+        setApiTest({ error })
       }
     }
 

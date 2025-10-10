@@ -10,7 +10,7 @@ import {
   ArrowUpRight,
   ArrowDownRight
 } from 'lucide-react'
-import { formatNumber, formatSOL } from '@/lib/utils'
+import { cn, formatNumber, formatSOL, getInitials } from '@/lib/utils'
 
 interface StatsCardsProps {
   stats: {

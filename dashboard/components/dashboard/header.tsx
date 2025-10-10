@@ -22,7 +22,7 @@ import {
   Menu,
   X
 } from 'lucide-react'
-import { getInitials } from '@/lib/utils'
+import { cn, formatNumber, formatSOL, getInitials } from '@/lib/utils'
 
 interface DashboardHeaderProps {
   onMenuToggle: () => void

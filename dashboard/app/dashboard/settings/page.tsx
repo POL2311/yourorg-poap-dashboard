@@ -25,7 +25,7 @@ import {
   Crown,
   Zap
 } from 'lucide-react'
-import { getInitials } from '@/lib/utils'
+import { getInitials } from 'lib/utils'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { toast } from 'react-hot-toast'
 
