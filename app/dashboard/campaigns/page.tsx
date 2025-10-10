@@ -1,9 +1,9 @@
 'use client'
-import { DebugAuth } from '@/components/debug/DebugAuth'
+
 import { useState } from 'react'
 import { useCampaigns, useCreateCampaign, useDeleteCampaign } from '@/hooks/use-api'
 import { useAuth } from '@/hooks/use-auth'
-import { Campaign } from '@/lib/types' // 👈 usa Campaign, no PublicCampaign
+import { Campaign } from '@/lib/types'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -19,7 +19,6 @@ import { Plus, Search, Calendar, Users } from 'lucide-react'
 import { formatDate, formatNumber } from '@/lib/utils'
 import { CampaignForm } from '@/components/forms/campaign-form'
 import { CampaignActions } from '@/components/campaigns/campaign-actions'
-import { DebugCampaigns } from '@/components/debug/DebugCampaigns'
 
 export default function CampaignsPage() {
   const [search, setSearch] = useState('')
@@ -67,10 +66,6 @@ export default function CampaignsPage() {
 
   return (
     <div className="space-y-6">
-      {/* 🔍 Debug Component - Remove this after fixing */}
-      <DebugAuth />
-      <DebugCampaigns />
-
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
