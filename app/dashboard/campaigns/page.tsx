@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useCampaigns, useCreateCampaign, useDeleteCampaign } from '@/hooks/use-api'
 import { useAuth } from '@/hooks/use-auth'
-import { Campaign } from '@/lib/types'
+import { Campaign } from '@/lib/types' // 👈 usa Campaign, no PublicCampaign
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
