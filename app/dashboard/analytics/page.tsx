@@ -53,7 +53,8 @@ export default function AnalyticsPage() {
   useEffect(() => {
     const fetchDailyClaims = async () => {
       try {
-        const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
+        const token = typeof window !== 'undefined' ? 
+          localStorage.getItem('jwt') || localStorage.getItem('auth-token') : null
         const res = await axios.get('/api/analytics/claims/daily', {
           headers: token ? { Authorization: `Bearer ${token}` } : undefined,
         })
@@ -75,7 +76,8 @@ export default function AnalyticsPage() {
   useEffect(() => {
     const fetchMonthlyTrend = async () => {
       try {
-        const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
+        const token = typeof window !== 'undefined' ? 
+          localStorage.getItem('jwt') || localStorage.getItem('auth-token') : null
         const res = await axios.get('/api/analytics/trend/monthly', {
           headers: token ? { Authorization: `Bearer ${token}` } : undefined,
         })
