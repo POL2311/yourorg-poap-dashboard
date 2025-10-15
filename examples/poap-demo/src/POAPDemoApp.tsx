@@ -36,6 +36,39 @@ const DEMO_EVENT = {
 const endpoint = 'https://api.devnet.solana.com'
 const apiUrl = 'http://localhost:3000'
 
+// ✅ HELPER: Record mint for dashboard analytics
+function recordMintForDashboard(data: {
+  campaignName: string
+  userWallet: string
+  transactionSignature: string
+  mintAddress: string
+}) {
+  try {
+    const mintRecord = {
+      id: `mint_${Date.now()}`,
+      ...data,
+      timestamp: new Date().toISOString(),
+    }
+    
+    const existing = JSON.parse(localStorage.getItem('poap-mint-records') || '[]')
+    existing.push(mintRecord)
+    localStorage.setItem('poap-mint-records', JSON.stringify(existing))
+    
+    // Update campaign claim count
+    const campaigns = JSON.parse(localStorage.getItem('poap-campaigns') || '[]')
+    const campaign = campaigns.find((c: any) => c.name === data.campaignName)
+    if (campaign) {
+      campaign.totalClaimed += 1
+      campaign.updatedAt = new Date().toISOString()
+      localStorage.setItem('poap-campaigns', JSON.stringify(campaigns))
+    }
+    
+    console.log('📊 Recorded POAP mint for dashboard analytics:', mintRecord)
+  } catch (error) {
+    console.warn('Failed to record POAP mint for dashboard:', error)
+  }
+}
+
 export default function POAPDemoApp() {
   const wallets = useMemo(() => [new PhantomWalletAdapter(), new SolflareWalletAdapter()], [])
 
@@ -82,7 +115,7 @@ export default function POAPDemoApp() {
 const HeroSection = () => (
   <section className="hero">
     <div className="hero-content">
-      <h1>🏅 POAP Infrastructure</h1>
+      <h1>🏅 Gasless infrastructure</h1>
       <p className="hero-subtitle">
         Gasless Proof of Attendance Protocol for Solana
       </p>
@@ -199,7 +232,15 @@ const POAPClaimingSection = ({ event }: { event: typeof DEMO_EVENT }) => {
       })
 
       if (response.data.success) {
-        const { nftMint, transactionSignature, userTokenAccount, gasCostPaidByRelayer } = response.data.data
+        const { nft, transactionSignature, gasCostPaidByRelayer } = response.data.data
+        
+        // ✅ Record this POAP mint for dashboard analytics
+        recordMintForDashboard({
+          campaignName: event.name,
+          userWallet: publicKey.toString(),
+          transactionSignature: nft.transactionSignature || transactionSignature,
+          mintAddress: nft.mint,
+        })
         
         toast.dismiss(loadingToast)
         setClaimed(true)
@@ -221,9 +262,9 @@ const POAPClaimingSection = ({ event }: { event: typeof DEMO_EVENT }) => {
           toast.success(
             <div style={{ fontSize: 12 }}>
               <div style={{ fontWeight: 'bold', marginBottom: 4 }}>🏅 {event.name} POAP</div>
-              <div>📍 Mint: {nftMint.slice(0, 12)}...{nftMint.slice(-12)}</div>
-              <div>📦 TX: {transactionSignature.slice(0, 12)}...{transactionSignature.slice(-12)}</div>
-              <div>🔗 <a href={`https://explorer.solana.com/tx/${transactionSignature}?cluster=devnet`} target="_blank" style={{color: '#4ade80'}}>View on Explorer</a></div>
+              <div>📍 Mint: {nft.mint.slice(0, 12)}...{nft.mint.slice(-12)}</div>
+              <div>📦 TX: {nft.transactionSignature.slice(0, 12)}...{nft.transactionSignature.slice(-12)}</div>
+              <div>🔗 <a href={`https://explorer.solana.com/tx/${nft.transactionSignature}?cluster=devnet`} target="_blank" style={{color: '#4ade80'}}>View on Explorer</a></div>
             </div>,
             { duration: 20000 }
           )
@@ -269,6 +310,7 @@ const POAPClaimingSection = ({ event }: { event: typeof DEMO_EVENT }) => {
                     className="code-input"
                     disabled={isLoading}
                   />
+                  
                   <button 
                     type="button" 
                     className="hint-button"
@@ -319,9 +361,9 @@ const POAPClaimingSection = ({ event }: { event: typeof DEMO_EVENT }) => {
                   <span className="label">Location:</span>
                   <span className="value">{event.location}</span>
                 </div>
-                {claimData?.nft?.explorerUrl && (
+                {claimData?.explorerUrl && (
                   <a 
-                    href={claimData.nft.explorerUrl} 
+                    href={claimData.explorerUrl} 
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="explorer-link"
@@ -350,7 +392,7 @@ const POAPClaimingSection = ({ event }: { event: typeof DEMO_EVENT }) => {
 const FeaturesSection = () => (
   <section className="features">
     <div className="container">
-      <h2>Why Choose POAP Infrastructure?</h2>
+      <h2>Why Choose Gasless infrastructure?</h2>
       <div className="features-grid">
         <div className="feature-card">
           <div className="feature-icon">💰</div>
@@ -392,7 +434,7 @@ const FooterSection = () => (
     <div className="container">
       <div className="footer-content">
         <div className="footer-section">
-          <h3>🏅 POAP Infrastructure</h3>
+          <h3>🏅 Gasless infrastructure</h3>
           <p>Gasless Proof of Attendance Protocol for Solana</p>
         </div>
         <div className="footer-section">
@@ -424,7 +466,7 @@ const FooterSection = () => (
         </div>
       </div>
       <div className="footer-bottom">
-        <p>&copy; 2024 POAP Infrastructure. Built with ❤️ on Solana.</p>
+        <p>&copy; 2024 Gasless infrastructure. Built with ❤️ on Solana.</p>
       </div>
     </div>
   </footer>
