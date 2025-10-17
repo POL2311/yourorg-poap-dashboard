@@ -166,6 +166,15 @@ class ApiClient {
     return response.data
   }
 
+  // ===== ANALYTICS ENDPOINTS =====
+
+  async getRecentActivity(limit?: number): Promise<ApiResponse<any>> {
+    const response: AxiosResponse<ApiResponse<any>> = await this.client.get('/analytics/recent-activity', {
+      params: { limit }
+    })
+    return response.data
+  }
+
   // ===== UTILITY METHODS =====
 
   setAuthToken(token: string) {
