@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import axios from 'axios'
 import { useCampaigns, useRelayerStats } from '@/hooks/use-api'
+import { useAuth } from '@/hooks/use-auth'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
@@ -33,8 +34,10 @@ import {
   Award
 } from 'lucide-react'
 import { formatNumber, formatSOL } from '@/lib/utils'
+import { AnalyticsDebug } from '@/components/debug/AnalyticsDebug'
 
 export default function AnalyticsPage() {
+  const { isAuthenticated, token } = useAuth()
   const { data: campaignsData, isLoading: campaignsLoading } = useCampaigns({ limit: 1000 })
   const { data: relayerData, isLoading: relayerLoading } = useRelayerStats()
 
@@ -52,11 +55,14 @@ export default function AnalyticsPage() {
 
   useEffect(() => {
     const fetchDailyClaims = async () => {
+      if (!isAuthenticated || !token) {
+        setLoadingDaily(false)
+        return
+      }
+      
       try {
-        const token = typeof window !== 'undefined' ? 
-          localStorage.getItem('jwt') || localStorage.getItem('auth-token') : null
         const res = await axios.get('/api/analytics/claims/daily', {
-          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+          headers: { Authorization: `Bearer ${token}` },
         })
         const data = Array.isArray(res.data) ? res.data : res.data?.data
         if (data) setDailyClaimsData(data)
@@ -67,7 +73,7 @@ export default function AnalyticsPage() {
       }
     }
     fetchDailyClaims()
-  }, [])
+  }, [isAuthenticated, token])
 
   // === Monthly Trend (datos reales) ===
   const [monthlyTrend, setMonthlyTrend] = useState<{ month: string; campaigns: number; claims: number }[]>([])
@@ -75,11 +81,14 @@ export default function AnalyticsPage() {
 
   useEffect(() => {
     const fetchMonthlyTrend = async () => {
+      if (!isAuthenticated || !token) {
+        setLoadingMonthly(false)
+        return
+      }
+      
       try {
-        const token = typeof window !== 'undefined' ? 
-          localStorage.getItem('jwt') || localStorage.getItem('auth-token') : null
         const res = await axios.get('/api/analytics/trend/monthly', {
-          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+          headers: { Authorization: `Bearer ${token}` },
         })
         const data = Array.isArray(res.data) ? res.data : res.data?.data
         if (data) setMonthlyTrend(data)
@@ -90,7 +99,7 @@ export default function AnalyticsPage() {
       }
     }
     fetchMonthlyTrend()
-  }, [])
+  }, [isAuthenticated, token])
 
   // === Campaign Performance y Status ===
   const campaignPerformanceData = campaigns.slice(0, 5).map(campaign => ({
@@ -129,6 +138,9 @@ export default function AnalyticsPage() {
           Comprehensive insights into your POAP campaigns and performance
         </p>
       </div>
+
+      {/* Debug Component */}
+      <AnalyticsDebug />
 
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
