@@ -261,7 +261,7 @@ export const POAPWidget: React.FC<POAPWidgetProps> = ({
       {/* Footer */}
       <div style={styles.footer}>
         <p style={styles.poweredBy}>
-          Powered by <a href="https://poap-infra.com" target="_blank" style={styles.brandLink}>POAP Infrastructure</a>
+          Powered by <a href="https://poap-infra.com" target="_blank" style={styles.brandLink}>Gasless infrastructure</a>
         </p>
       </div>
     </div>

@@ -1,9 +1,28 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
-import { AuthService } from '../services/auth.service';
-import { RegisterOrganizerSchema, LoginOrganizerSchema, CreateApiKeySchema } from '../schemas';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import { v4 as uuidv4 } from 'uuid';
+import { z } from 'zod';
 
 const prisma = new PrismaClient();
+
+// Validation schemas
+const registerSchema = z.object({
+  email: z.string().email(),
+  name: z.string().min(1).max(100),
+  company: z.string().min(1).max(100).optional(),
+  password: z.string().min(6)
+});
+
+const loginSchema = z.object({
+  email: z.string().email(),
+  password: z.string()
+});
+
+const createApiKeySchema = z.object({
+  name: z.string().min(1).max(50)
+});
 
 export class AuthController {
   /**
@@ -11,7 +30,7 @@ export class AuthController {
    */
   static async register(req: Request, res: Response) {
     try {
-      const validatedData = RegisterOrganizerSchema.parse(req.body);
+      const validatedData = registerSchema.parse(req.body);
 
       // Check if organizer already exists
       const existingOrganizer = await prisma.organizer.findUnique({
@@ -26,7 +45,7 @@ export class AuthController {
       }
 
       // Hash password
-      const passwordHash = await AuthService.hashPassword(validatedData.password);
+      const passwordHash = await bcrypt.hash(validatedData.password, 12);
 
       // Create organizer
       const organizer = await prisma.organizer.create({
@@ -35,6 +54,8 @@ export class AuthController {
           name: validatedData.name,
           company: validatedData.company,
           passwordHash,
+          isActive: true,
+          tier: 'free'
         },
         select: {
           id: true,
@@ -47,11 +68,15 @@ export class AuthController {
       });
 
       // Generate JWT token
-      const token = AuthService.generateToken({
-        organizerId: organizer.id,
-        email: organizer.email,
-        tier: organizer.tier,
-      });
+      const token = jwt.sign(
+        {
+          organizerId: organizer.id,
+          email: organizer.email,
+          tier: organizer.tier
+        },
+        process.env.JWT_SECRET || 'your-secret-key',
+        { expiresIn: '7d' }
+      );
 
       console.log(`✅ New organizer registered: ${organizer.email}`);
 
@@ -66,11 +91,11 @@ export class AuthController {
     } catch (error) {
       console.error('❌ Registration error:', error);
       
-      if (error instanceof Error && error.name === 'ZodError') {
+      if (error instanceof z.ZodError) {
         return res.status(400).json({
           success: false,
           error: 'Validation failed',
-          details: error,
+          details: error.errors,
         });
       }
 
@@ -86,20 +111,11 @@ export class AuthController {
    */
   static async login(req: Request, res: Response) {
     try {
-      const validatedData = LoginOrganizerSchema.parse(req.body);
+      const validatedData = loginSchema.parse(req.body);
 
       // Find organizer
       const organizer = await prisma.organizer.findUnique({
         where: { email: validatedData.email },
-        select: {
-          id: true,
-          email: true,
-          name: true,
-          company: true,
-          tier: true,
-          passwordHash: true,
-          isActive: true,
-        },
       });
 
       if (!organizer || !organizer.isActive) {
@@ -110,7 +126,7 @@ export class AuthController {
       }
 
       // Verify password
-      const isValidPassword = await AuthService.verifyPassword(
+      const isValidPassword = await bcrypt.compare(
         validatedData.password,
         organizer.passwordHash
       );
@@ -123,11 +139,15 @@ export class AuthController {
       }
 
       // Generate JWT token
-      const token = AuthService.generateToken({
-        organizerId: organizer.id,
-        email: organizer.email,
-        tier: organizer.tier,
-      });
+      const token = jwt.sign(
+        {
+          organizerId: organizer.id,
+          email: organizer.email,
+          tier: organizer.tier
+        },
+        process.env.JWT_SECRET || 'your-secret-key',
+        { expiresIn: '7d' }
+      );
 
       console.log(`✅ Organizer logged in: ${organizer.email}`);
 
@@ -148,11 +168,11 @@ export class AuthController {
     } catch (error) {
       console.error('❌ Login error:', error);
       
-      if (error instanceof Error && error.name === 'ZodError') {
+      if (error instanceof z.ZodError) {
         return res.status(400).json({
           success: false,
           error: 'Validation failed',
-          details: error,
+          details: error.errors,
         });
       }
 
@@ -166,23 +186,24 @@ export class AuthController {
   /**
    * Get organizer profile
    */
-  static async getProfile(req: Request, res: Response) {
+  static async getProfile(req: any, res: Response) {
     try {
-      const organizerId = req.organizer!.id;
+      const organizerId = req.user?.id || req.organizer?.id;
+
+      if (!organizerId) {
+        return res.status(401).json({
+          success: false,
+          error: 'Authentication required',
+        });
+      }
 
       const organizer = await prisma.organizer.findUnique({
         where: { id: organizerId },
-        select: {
-          id: true,
-          email: true,
-          name: true,
-          company: true,
-          tier: true,
-          createdAt: true,
+        include: {
           _count: {
             select: {
               campaigns: true,
-              apiKeys: true,
+              apiKeys: true
             },
           },
         },
@@ -197,7 +218,18 @@ export class AuthController {
 
       return res.json({
         success: true,
-        data: organizer,
+        data: {
+          id: organizer.id,
+          email: organizer.email,
+          name: organizer.name,
+          company: organizer.company,
+          tier: organizer.tier,
+          stats: {
+            totalCampaigns: organizer._count.campaigns,
+            totalApiKeys: organizer._count.apiKeys
+          },
+          createdAt: organizer.createdAt
+        },
       });
     } catch (error) {
       console.error('❌ Get profile error:', error);
@@ -211,12 +243,19 @@ export class AuthController {
   /**
    * Create API key
    */
-  static async createApiKey(req: Request, res: Response) {
+  static async createApiKey(req: any, res: Response) {
     try {
-      const validatedData = CreateApiKeySchema.parse(req.body);
-      const organizerId = req.organizer!.id;
+      const validatedData = createApiKeySchema.parse(req.body);
+      const organizerId = req.user?.id || req.organizer?.id;
 
-      // Check API key limit based on tier
+      if (!organizerId) {
+        return res.status(401).json({
+          success: false,
+          error: 'Authentication required',
+        });
+      }
+
+      // Check API key limit (basic limit for now)
       const existingKeys = await prisma.apiKey.count({
         where: {
           organizerId,
@@ -224,24 +263,22 @@ export class AuthController {
         },
       });
 
-      const tier = req.organizer!.tier;
-      const maxKeys = tier === 'free' ? 2 : tier === 'pro' ? 10 : 50;
-
-      if (existingKeys >= maxKeys) {
+      if (existingKeys >= 10) {
         return res.status(400).json({
           success: false,
-          error: `Maximum API keys reached for ${tier} tier (${maxKeys})`,
+          error: 'Maximum API keys reached (10)',
         });
       }
 
       // Generate API key
-      const key = AuthService.generateApiKey();
+      const key = `pk_${uuidv4().replace(/-/g, '')}`;
 
       const apiKey = await prisma.apiKey.create({
         data: {
           key,
           name: validatedData.name,
           organizerId,
+          isActive: true
         },
         select: {
           id: true,
@@ -251,7 +288,7 @@ export class AuthController {
         },
       });
 
-      console.log(`🔑 API key created for organizer ${req.organizer!.email}: ${validatedData.name}`);
+      console.log(`🔑 API key created for organizer ${organizerId}: ${validatedData.name}`);
 
       return res.status(201).json({
         success: true,
@@ -263,11 +300,11 @@ export class AuthController {
     } catch (error) {
       console.error('❌ Create API key error:', error);
       
-      if (error instanceof Error && error.name === 'ZodError') {
+      if (error instanceof z.ZodError) {
         return res.status(400).json({
           success: false,
           error: 'Validation failed',
-          details: error,
+          details: error.errors,
         });
       }
 
@@ -281,9 +318,16 @@ export class AuthController {
   /**
    * List API keys
    */
-  static async listApiKeys(req: Request, res: Response) {
+  static async listApiKeys(req: any, res: Response) {
     try {
-      const organizerId = req.organizer!.id;
+      const organizerId = req.user?.id || req.organizer?.id;
+
+      if (!organizerId) {
+        return res.status(401).json({
+          success: false,
+          error: 'Authentication required',
+        });
+      }
 
       const apiKeys = await prisma.apiKey.findMany({
         where: { organizerId },
@@ -314,10 +358,17 @@ export class AuthController {
   /**
    * Deactivate API key
    */
-  static async deactivateApiKey(req: Request, res: Response) {
+  static async deactivateApiKey(req: any, res: Response) {
     try {
       const { keyId } = req.params;
-      const organizerId = req.organizer!.id;
+      const organizerId = req.user?.id || req.organizer?.id;
+
+      if (!organizerId) {
+        return res.status(401).json({
+          success: false,
+          error: 'Authentication required',
+        });
+      }
 
       const apiKey = await prisma.apiKey.findFirst({
         where: {

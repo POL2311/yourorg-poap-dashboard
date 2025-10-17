@@ -4,7 +4,7 @@ import { Button } from '../ui/button'
 import { Input } from '../ui/input'
 import { Label } from '../ui/label'
 import { Card, CardContent } from '../ui/card'
-import { useCreateCampaign } from '../../hooks/useApi'
+import { useCreateCampaign } from '../../hooks/use-api'
 import { Calendar, MapPin, Image, Key, Users, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -25,6 +25,8 @@ export const CampaignCreator: React.FC<CampaignCreatorProps> = ({ onClose, onSuc
     requireCode: true,
   })
 
+  
+
   const createCampaignMutation = useCreateCampaign()
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -36,20 +38,22 @@ export const CampaignCreator: React.FC<CampaignCreatorProps> = ({ onClose, onSuc
     }
 
     try {
+      // ✅ Fixed: Use correct data format matching the API
       await createCampaignMutation.mutateAsync({
         name: formData.name,
-        description: formData.description,
-        eventDate: formData.eventDate,
-        location: formData.location,
-        image: formData.image || `https://api.dicebear.com/7.x/shapes/svg?seed=${encodeURIComponent(formData.name)}`,
+        description: formData.description || undefined,
+        eventDate: new Date(formData.eventDate).toISOString(), // ✅ Convert to ISO string
+        location: formData.location || undefined,
+        imageUrl: formData.image || `https://api.dicebear.com/7.x/shapes/svg?seed=${encodeURIComponent(formData.name)}`,
         secretCode: formData.requireCode ? formData.secretCode : undefined,
-        maxSupply: formData.maxSupply ? parseInt(formData.maxSupply) : undefined,
+        maxClaims: formData.maxSupply ? parseInt(formData.maxSupply) : undefined,
       })
 
       onSuccess()
       onClose()
     } catch (error) {
       console.error('Error creating campaign:', error)
+      // Error handling is now done by the mutation hook
     }
   }
 

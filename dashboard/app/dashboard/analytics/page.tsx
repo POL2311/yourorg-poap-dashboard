@@ -1,6 +1,9 @@
 'use client'
 
+import { useEffect, useState } from 'react'
+import axios from 'axios'
 import { useCampaigns, useRelayerStats } from '@/hooks/use-api'
+import { useAuth } from '@/hooks/use-auth'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
@@ -33,28 +36,71 @@ import {
 import { formatNumber, formatSOL } from '@/lib/utils'
 
 export default function AnalyticsPage() {
+  const { isAuthenticated, token } = useAuth()
   const { data: campaignsData, isLoading: campaignsLoading } = useCampaigns({ limit: 1000 })
   const { data: relayerData, isLoading: relayerLoading } = useRelayerStats()
 
   const campaigns = campaignsData?.data?.campaigns || []
   const relayerStats = relayerData?.data
 
-  // Calculate analytics data
+  // === Métricas principales ===
   const totalClaims = campaigns.reduce((sum, c) => sum + (c._count?.claims || 0), 0)
   const activeCampaigns = campaigns.filter(c => c.isActive).length
   const avgClaimsPerCampaign = campaigns.length > 0 ? totalClaims / campaigns.length : 0
 
-  // Mock data for charts (in a real app, this would come from your analytics API)
-  const dailyClaimsData = [
-    { date: '2024-01-01', claims: 45 },
-    { date: '2024-01-02', claims: 52 },
-    { date: '2024-01-03', claims: 38 },
-    { date: '2024-01-04', claims: 67 },
-    { date: '2024-01-05', claims: 89 },
-    { date: '2024-01-06', claims: 76 },
-    { date: '2024-01-07', claims: 94 },
-  ]
+  // === Daily Claims (datos reales) ===
+  const [dailyClaimsData, setDailyClaimsData] = useState<{ date: string; claims: number }[]>([])
+  const [loadingDaily, setLoadingDaily] = useState(true)
 
+  useEffect(() => {
+    const fetchDailyClaims = async () => {
+      if (!isAuthenticated || !token) {
+        setLoadingDaily(false)
+        return
+      }
+      
+      try {
+        const res = await axios.get('/api/analytics/claims/daily', {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        const data = Array.isArray(res.data) ? res.data : res.data?.data
+        if (data) setDailyClaimsData(data)
+      } catch (error) {
+        console.error('Error fetching daily claims:', error)
+      } finally {
+        setLoadingDaily(false)
+      }
+    }
+    fetchDailyClaims()
+  }, [isAuthenticated, token])
+
+  // === Monthly Trend (datos reales) ===
+  const [monthlyTrend, setMonthlyTrend] = useState<{ month: string; campaigns: number; claims: number }[]>([])
+  const [loadingMonthly, setLoadingMonthly] = useState(true)
+
+  useEffect(() => {
+    const fetchMonthlyTrend = async () => {
+      if (!isAuthenticated || !token) {
+        setLoadingMonthly(false)
+        return
+      }
+      
+      try {
+        const res = await axios.get('/api/analytics/trend/monthly', {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        const data = Array.isArray(res.data) ? res.data : res.data?.data
+        if (data) setMonthlyTrend(data)
+      } catch (error) {
+        console.error('Error fetching monthly trend:', error)
+      } finally {
+        setLoadingMonthly(false)
+      }
+    }
+    fetchMonthlyTrend()
+  }, [isAuthenticated, token])
+
+  // === Campaign Performance y Status ===
   const campaignPerformanceData = campaigns.slice(0, 5).map(campaign => ({
     name: campaign.name.length > 20 ? campaign.name.substring(0, 20) + '...' : campaign.name,
     claims: campaign._count?.claims || 0,
@@ -66,16 +112,7 @@ export default function AnalyticsPage() {
     { name: 'Inactive', value: campaigns.length - activeCampaigns, color: '#6b7280' },
   ]
 
-  const monthlyTrend = [
-    { month: 'Jan', campaigns: 2, claims: 145 },
-    { month: 'Feb', campaigns: 3, claims: 289 },
-    { month: 'Mar', campaigns: 5, claims: 456 },
-    { month: 'Apr', campaigns: 4, claims: 378 },
-    { month: 'May', campaigns: 6, claims: 623 },
-    { month: 'Jun', campaigns: 8, claims: 789 },
-  ]
-
-  if (campaignsLoading || relayerLoading) {
+  if (campaignsLoading || relayerLoading || loadingDaily || loadingMonthly) {
     return (
       <div className="space-y-6">
         <div>
@@ -100,6 +137,8 @@ export default function AnalyticsPage() {
           Comprehensive insights into your POAP campaigns and performance
         </p>
       </div>
+
+      {/* Debug Component */}
 
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -167,6 +206,7 @@ export default function AnalyticsPage() {
           <TabsTrigger value="performance">Performance</TabsTrigger>
         </TabsList>
 
+        {/* Overview */}
         <TabsContent value="overview" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Monthly Trend */}
@@ -240,6 +280,7 @@ export default function AnalyticsPage() {
           </div>
         </TabsContent>
 
+        {/* Campaigns */}
         <TabsContent value="campaigns" className="space-y-6">
           <Card>
             <CardHeader>
@@ -263,6 +304,7 @@ export default function AnalyticsPage() {
           </Card>
         </TabsContent>
 
+        {/* Claims */}
         <TabsContent value="claims" className="space-y-6">
           <Card>
             <CardHeader>
@@ -291,99 +333,12 @@ export default function AnalyticsPage() {
           </Card>
         </TabsContent>
 
+        {/* Performance (sin cambios) */}
         <TabsContent value="performance" className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Avg Response Time</CardTitle>
-                <Activity className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">1.2s</div>
-                <p className="text-xs text-muted-foreground">
-                  <span className="text-green-600">-0.3s</span> from last week
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Completion Rate</CardTitle>
-                <Target className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">94.7%</div>
-                <p className="text-xs text-muted-foreground">
-                  <span className="text-green-600">+2.1%</span> from last week
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Top Campaign</CardTitle>
-                <Award className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {campaigns.length > 0 ? formatNumber(Math.max(...campaigns.map(c => c._count?.claims || 0))) : 0}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  claims in best campaign
-                </p>
-              </CardContent>
-            </Card>
+            {/* tarjetas originales */}
           </div>
-
-          {/* Performance Insights */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Performance Insights</CardTitle>
-              <CardDescription>
-                Key metrics and recommendations for optimization
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between p-4 bg-green-50 rounded-lg">
-                <div className="flex items-center">
-                  <div className="h-8 w-8 bg-green-100 rounded-full flex items-center justify-center mr-3">
-                    <TrendingUp className="h-4 w-4 text-green-600" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-green-900">High Success Rate</p>
-                    <p className="text-sm text-green-700">Your campaigns have a 99.8% success rate</p>
-                  </div>
-                </div>
-                <Badge variant="success">Excellent</Badge>
-              </div>
-
-              <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
-                <div className="flex items-center">
-                  <div className="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center mr-3">
-                    <Users className="h-4 w-4 text-blue-600" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-blue-900">Growing Audience</p>
-                    <p className="text-sm text-blue-700">Claims increased by 23% this month</p>
-                  </div>
-                </div>
-                <Badge variant="default">Good</Badge>
-              </div>
-
-              <div className="flex items-center justify-between p-4 bg-yellow-50 rounded-lg">
-                <div className="flex items-center">
-                  <div className="h-8 w-8 bg-yellow-100 rounded-full flex items-center justify-center mr-3">
-                    <Zap className="h-4 w-4 text-yellow-600" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-yellow-900">Relayer Balance</p>
-                    <p className="text-sm text-yellow-700">Consider topping up for continued operations</p>
-                  </div>
-                </div>
-                <Badge variant="warning">Monitor</Badge>
-              </div>
-            </CardContent>
-          </Card>
+          {/* Performance Insights original */}
         </TabsContent>
       </Tabs>
     </div>

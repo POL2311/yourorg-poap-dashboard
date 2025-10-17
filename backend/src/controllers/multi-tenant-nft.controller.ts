@@ -2,7 +2,6 @@ import { Request, Response } from 'express';
 import { PublicKey, Connection, Keypair } from '@solana/web3.js';
 import { PrismaClient } from '@prisma/client';
 import { NFTMintService } from '../services/nft-mint.service';
-import { ClaimPOAPSchema } from '../schemas';
 
 const prisma = new PrismaClient();
 
@@ -39,17 +38,23 @@ export class MultiTenantNFTController {
   }
 
   /**
-   * 🏅 Multi-tenant POAP claiming
+   * 🏅 Multi-tenant POAP claiming with database integration
    */
   claimPOAP = async (req: Request, res: Response) => {
     try {
-      const validatedData = ClaimPOAPSchema.parse(req.body);
-      const { userPublicKey, campaignId, secretCode, metadata } = validatedData;
+      const { userPublicKey, campaignId, secretCode } = req.body;
 
       console.log('🏅 MULTI-TENANT POAP CLAIM STARTED');
       console.log(`👤 User: ${userPublicKey}`);
       console.log(`🎪 Campaign: ${campaignId}`);
       console.log(`⚡ Relayer: ${this.relayerKeypair.publicKey.toString()}`);
+
+      if (!userPublicKey) {
+        return res.status(400).json({
+          success: false,
+          error: 'userPublicKey is required',
+        });
+      }
 
       // Validate user public key
       let user: PublicKey;
@@ -73,7 +78,7 @@ export class MultiTenantNFTController {
         });
       }
 
-      // Get campaign details
+      // Get campaign details from database
       const campaign = await prisma.campaign.findFirst({
         where: {
           id: campaignId,
@@ -134,34 +139,10 @@ export class MultiTenantNFTController {
       }
 
       // Validate secret code if required
-      const normalizedSecret = (secretCode ?? undefined)?.trim();
-     if (campaign.secretCode && normalizedSecret !== campaign.secretCode) {
-      return res.status(400).json({ success:false, error:'Invalid secret code for this campaign' })
-    }
-
-      // Check tier limits
-      const organizerTier = campaign.organizer.tier;
-      const monthlyClaimsLimit = organizerTier === 'free' ? 100 : organizerTier === 'pro' ? 5000 : 50000;
-      
-      const monthStart = new Date();
-      monthStart.setDate(1);
-      monthStart.setHours(0, 0, 0, 0);
-
-      const monthlyClaimsCount = await prisma.claim.count({
-        where: {
-          campaign: {
-            organizerId: campaign.organizerId,
-          },
-          claimedAt: {
-            gte: monthStart,
-          },
-        },
-      });
-
-      if (monthlyClaimsCount >= monthlyClaimsLimit) {
+      if (campaign.secretCode && secretCode !== campaign.secretCode) {
         return res.status(400).json({
           success: false,
-          error: `Monthly claims limit reached for ${organizerTier} tier (${monthlyClaimsLimit})`,
+          error: 'Invalid secret code for this campaign'
         });
       }
 
@@ -185,12 +166,10 @@ export class MultiTenantNFTController {
           { trait_type: 'Campaign ID', value: campaignId },
           { trait_type: 'Network', value: 'Solana' },
           { trait_type: 'Gasless', value: 'true' },
-          ...(metadata?.attributes || []),
         ],
         properties: {
           category: 'POAP',
           files: [{ uri: imageUrl, type: 'image/svg+xml' }],
-          ...metadata?.properties,
         },
       };
 
@@ -218,30 +197,7 @@ export class MultiTenantNFTController {
           gasCost: mintResult.gasCost,
           userAgent: req.headers['user-agent'],
           ipAddress: req.ip,
-          metadata: metadata || {},
-        },
-      });
-
-      // Update usage statistics
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      await prisma.usage.upsert({
-        where: {
-          organizerId_date: {
-            organizerId: campaign.organizerId,
-            date: today,
-          },
-        },
-        update: {
-          claims: { increment: 1 },
-          gasCost: { increment: mintResult.gasCost || 0 },
-        },
-        create: {
-          organizerId: campaign.organizerId,
-          date: today,
-          claims: 1,
-          gasCost: mintResult.gasCost || 0,
+          metadata: {},
         },
       });
 
@@ -280,15 +236,6 @@ export class MultiTenantNFTController {
       });
     } catch (error) {
       console.error('❌ Error in multi-tenant POAP claim:', error);
-      
-      if (error instanceof Error && error.name === 'ZodError') {
-        return res.status(400).json({
-          success: false,
-          error: 'Validation failed',
-          details: error,
-        });
-      }
-
       return res.status(500).json({
         success: false,
         error: error instanceof Error ? error.message : 'Internal server error',
@@ -398,7 +345,7 @@ export class MultiTenantNFTController {
           imageUrl: true,
           externalUrl: true,
           maxClaims: true,
-          isActive: true,     // 👈 AÑADIR ESTO
+          isActive: true,
           organizer: {
             select: {
               name: true,
@@ -443,7 +390,7 @@ export class MultiTenantNFTController {
     try {
       const balance = await this.connection.getBalance(this.relayerKeypair.publicKey);
 
-      // Get total claims and gas costs
+      // Get total claims and gas costs from database
       const stats = await prisma.claim.aggregate({
         _count: true,
         _sum: {

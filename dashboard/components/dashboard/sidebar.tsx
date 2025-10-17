@@ -72,7 +72,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           <div className="flex items-center px-6 py-4 border-b border-gray-200">
             <Zap className="h-8 w-8 text-indigo-600" />
             <span className="ml-2 text-lg font-bold text-gray-900">
-              POAP Infrastructure
+              Gasless infrastructure
             </span>
           </div>
 

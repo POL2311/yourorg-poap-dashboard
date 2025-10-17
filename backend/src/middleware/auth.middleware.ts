@@ -1,146 +1,168 @@
+import jwt from 'jsonwebtoken';
 import { Request, Response, NextFunction } from 'express';
 import { PrismaClient } from '@prisma/client';
-import { AuthService } from '../services/auth.service';
 
 const prisma = new PrismaClient();
 
-// Extend Express Request type
-declare global {
-  namespace Express {
-    interface Request {
-      organizer?: {
-        id: string;
-        email: string;
-        tier: string;
-      };
-    }
-  }
+export interface AuthenticatedRequest extends Request {
+  user?: {
+    id: string;
+    email: string;
+    organizerId: string;
+    role: string;
+  };
+  organizer?: {
+    id: string;
+    email: string;
+    tier: string;
+    name: string;
+  };
+  apiKey?: {
+    id: string;
+    organizerId: string;
+    name: string;
+  };
 }
 
-/**
- * JWT Authentication Middleware
- */
-export const authenticateJWT = async (req: Request, res: Response, next: NextFunction) => {
+// JWT Authentication (for dashboard/organizer operations)
+export const authenticate = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+  if (!token) return res.status(401).json({ success: false, error: 'Access token required' });
+
   try {
-    const token = AuthService.extractTokenFromHeader(req.headers.authorization);
-    
-    if (!token) {
-      return res.status(401).json({
-        success: false,
-        error: 'Access token required',
-      });
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as any;
+
+    // Decoded debe traer organizerId (asegúrate al emitir el token)
+    const organizer = await prisma.organizer.findUnique({ where: { id: decoded.organizerId } });
+    if (!organizer || !organizer.isActive) {
+      return res.status(401).json({ success: false, error: 'Invalid or inactive organizer' });
     }
 
-    const payload = AuthService.verifyToken(token);
-    
-    // Verify organizer still exists and is active
-    const organizer = await prisma.organizer.findFirst({
-      where: {
-        id: payload.organizerId,
-        isActive: true,
-      },
-      select: {
-        id: true,
-        email: true,
-        tier: true,
-      },
-    });
+    req.organizer = {
+      id: organizer.id,
+      email: organizer.email,
+      tier: organizer.tier,
+      name: organizer.name
+    };
 
-    if (!organizer) {
-      return res.status(401).json({
-        success: false,
-        error: 'Invalid or expired token',
-      });
-    }
+    req.user = {
+      id: organizer.id,
+      email: organizer.email,
+      role: 'admin',
+      organizerId: organizer.id,          // ✅ canónico
+    };
 
-    req.organizer = organizer;
     next();
-  } catch (error) {
-    console.error('JWT authentication error:', error);
-    return res.status(401).json({
-      success: false,
-      error: 'Invalid token',
-    });
+  } catch {
+    return res.status(403).json({ success: false, error: 'Invalid token' });
   }
 };
 
-/**
- * API Key Authentication Middleware
- */
-export const authenticateApiKey = async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const apiKey = AuthService.extractApiKeyFromHeader(req.headers.authorization);
-    
-    if (!apiKey) {
-      return res.status(401).json({
-        success: false,
-        error: 'API key required',
-      });
-    }
 
-    // Find and validate API key
+// API Key Authentication (for POAP claiming operations)
+export const authenticateApiKey = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  const authHeader = req.headers['authorization'];
+  const apiKey = authHeader && authHeader.startsWith('ApiKey ') 
+    ? authHeader.substring(7) 
+    : null;
+
+  if (!apiKey) {
+    return res.status(401).json({ 
+      success: false, 
+      error: 'API key required. Use header: Authorization: ApiKey <your-key>' 
+    });
+  }
+
+  try {
+    // Find active API key
     const keyRecord = await prisma.apiKey.findFirst({
-      where: {
+      where: { 
         key: apiKey,
-        isActive: true,
+        isActive: true 
       },
-      include: {
-        organizer: {
-          select: {
-            id: true,
-            email: true,
-            tier: true,
-            isActive: true,
-          },
-        },
-      },
+      include: { organizer: true }
     });
 
     if (!keyRecord || !keyRecord.organizer.isActive) {
-      return res.status(401).json({
-        success: false,
-        error: 'Invalid API key',
+      return res.status(401).json({ 
+        success: false, 
+        error: 'Invalid or inactive API key' 
       });
     }
 
     // Update last used timestamp
     await prisma.apiKey.update({
       where: { id: keyRecord.id },
-      data: { lastUsedAt: new Date() },
+      data: { lastUsedAt: new Date() }
     });
 
-    req.organizer = keyRecord.organizer;
+    req.apiKey = {
+      id: keyRecord.id,
+      organizerId: keyRecord.organizerId,
+      name: keyRecord.name
+    };
+
+    // Also set organizer info for compatibility
+    req.organizer = {
+      id: keyRecord.organizer.id,
+      email: keyRecord.organizer.email,
+      tier: keyRecord.organizer.tier,
+      name: keyRecord.organizer.name
+    };
+
     next();
   } catch (error) {
     console.error('API key authentication error:', error);
-    return res.status(401).json({
-      success: false,
-      error: 'Authentication failed',
+    return res.status(500).json({ 
+      success: false, 
+      error: 'Authentication error' 
     });
   }
 };
 
-/**
- * Flexible authentication - accepts both JWT and API key
- */
-export const authenticate = async (req: Request, res: Response, next: NextFunction) => {
-  const authHeader = req.headers.authorization;
-  
-  if (!authHeader) {
-    return res.status(401).json({
-      success: false,
-      error: 'Authorization header required',
-    });
+// Legacy alias for backward compatibility
+export const authenticateToken = authenticate;
+
+export const requireRole = (roles: string[]) => {
+  return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    if (!req.user || !roles.includes(req.user.role)) {
+      return res.status(403).json({ 
+        success: false, 
+        error: 'Insufficient permissions' 
+      });
+    }
+    next();
+  };
+};
+
+export const requireOrganization = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  if (!req.organizer) {
+    return res.status(401).json({ success: false, error: 'Authentication required' });
   }
 
-  if (authHeader.startsWith('Bearer ')) {
-    return authenticateJWT(req, res, next);
-  } else if (authHeader.startsWith('ApiKey ')) {
-    return authenticateApiKey(req, res, next);
-  } else {
-    return res.status(401).json({
-      success: false,
-      error: 'Invalid authorization format. Use "Bearer <token>" or "ApiKey <key>"',
+  try {
+    const organizer = await prisma.organizer.findUnique({
+      where: { id: req.organizer.id }
     });
+
+    if (!organizer || !organizer.isActive) {
+      return res.status(403).json({ 
+        success: false, 
+        error: 'Organizer not found or inactive' 
+      });
+    }
+
+    next();
+  } catch (error) {
+    return res.status(500).json({ success: false, error: 'Database error' });
   }
 };

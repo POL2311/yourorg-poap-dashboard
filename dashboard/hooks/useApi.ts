@@ -1,54 +1,73 @@
+'use client'
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import axios from 'axios'
+import { handleApiError } from '@/lib/handleApiError'
 import toast from 'react-hot-toast'
 
+// =======================
+// 📡 API CLIENT
+// =======================
 const API_BASE_URL = 'http://localhost:3000'
 
-// API Client
-const api = axios.create({
+export const api = axios.create({
   baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  headers: { 'Content-Type': 'application/json' },
 })
 
-// Types
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('auth-token')
+  if (token) config.headers.Authorization = `Bearer ${token}`
+  return config
+})
+
+api.interceptors.response.use(
+  (res) => res,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('auth-token')
+      window.location.replace('/login')
+    }
+    return Promise.reject(error)
+  }
+)
+
+// =======================
+// 🧾 TYPES
+// =======================
 export interface Campaign {
   id: string
   name: string
-  description: string
+  description?: string
   eventDate: string
-  location: string
-  image: string
+  location?: string
+  imageUrl?: string
+  externalUrl?: string
   secretCode?: string
-  maxSupply?: number
-  totalClaimed: number
+  maxClaims?: number
   isActive: boolean
   organizerId: string
   createdAt: string
   updatedAt: string
-  claimUrl: string
-  widgetCode: string
+  metadata?: any
+  _count?: { claims: number }
+  organizer?: { name: string; email: string; company?: string }
 }
 
-export interface AnalyticsData {
-  totalClaims: number
-  successRate: number
-  peakTime: string
-  topLocation: string
-  avgClaimTime: string
-  chartData: Array<{
-    date: string
-    claims: number
-    unique_users: number
-  }>
-  recentClaims: Array<{
-    id: string
-    campaignName: string
-    userWallet: string
-    claimedAt: string
-    transactionSignature: string
-  }>
+export interface CampaignAnalytics {
+  campaign: { id: string; name: string; maxClaims?: number }
+  claims: { total: number; today: number; thisWeek: number; thisMonth: number; remaining?: number }
+  gas: { totalCost: number; averageCost: number; totalCostSOL: number }
+  dailyClaims: Array<{ date: string; claims: number }>
+}
+
+export interface Claim {
+  id: string
+  campaignId: string
+  userPublicKey: string
+  mintAddress?: string
+  transactionHash?: string
+  claimedAt: string
 }
 
 export interface RelayerStats {
@@ -60,221 +79,204 @@ export interface RelayerStats {
   timestamp: string
 }
 
-// ✅ REAL API HOOKS (Connected to your backend)
-
+// =======================
+// 🪙 RELAYER
+// =======================
 export function useRelayerStats() {
   return useQuery({
     queryKey: ['relayer-stats'],
     queryFn: async (): Promise<RelayerStats> => {
-      const response = await api.get('/api/relayer/stats')
-      return response.data.data
+      const { data } = await api.get('/api/relayer/stats')
+      return data.data
     },
-    refetchInterval: 30000, // Refresh every 30 seconds
+    refetchInterval: 30000,
   })
 }
 
+// =======================
+// 🧠 HEALTH CHECK
+// =======================
 export function useHealthCheck() {
   return useQuery({
     queryKey: ['health'],
     queryFn: async () => {
-      const response = await api.get('/health')
-      return response.data
+      const { data } = await api.get('/health')
+      return data
     },
-    refetchInterval: 60000, // Check every minute
+    refetchInterval: 60000,
   })
 }
 
-// ⚠️ TEMPORARY: Local Storage Based Campaigns (until you add database)
+// =======================
+// 🪙 CAMPAIGNS
+// =======================
 export function useCampaigns() {
   return useQuery({
     queryKey: ['campaigns'],
     queryFn: async (): Promise<Campaign[]> => {
-      // Get campaigns from localStorage (temporary solution)
-      const stored = localStorage.getItem('poap-campaigns')
-      if (stored) {
-        return JSON.parse(stored)
-      }
-      
-      // Default demo campaigns if none exist
-      const defaultCampaigns = [
-        {
-          id: 'demo-breakpoint-2024',
-          name: 'Solana Breakpoint 2024',
-          description: 'The premier Solana conference bringing together builders and creators.',
-          eventDate: '2024-09-20',
-          location: 'Singapore',
-          image: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400&h=300&fit=crop',
-          secretCode: 'BREAKPOINT2024',
-          maxSupply: 5000,
-          totalClaimed: 0, // Will be calculated from localStorage mint records
-          isActive: true,
-          organizerId: 'demo-org',
-          createdAt: '2024-01-15T10:30:00Z',
-          updatedAt: new Date().toISOString(),
-          claimUrl: 'http://localhost:5173',
-          widgetCode: '<iframe src="http://localhost:5173" width="400" height="600"></iframe>',
-        }
-      ]
-      
-      localStorage.setItem('poap-campaigns', JSON.stringify(defaultCampaigns))
-      return defaultCampaigns
+      const { data } = await api.get('/api/campaigns')
+      const raw = data.data
+      const campaigns = Array.isArray(raw) ? raw : (raw?.campaigns ?? [])
+      return campaigns.map((c: any) => ({
+        ...c,
+        image: c.image ?? c.imageUrl ?? '',
+        totalClaimed: c.totalClaimed ?? c._count?.claims ?? 0,
+        maxSupply: c.maxSupply ?? c.maxClaims ?? null,
+      }))
     },
   })
 }
 
-// ⚠️ TEMPORARY: Analytics from localStorage mint records
-export function useAnalytics() {
+export function useCampaignAnalytics(campaignId: string) {
   return useQuery({
-    queryKey: ['analytics'],
-    queryFn: async (): Promise<AnalyticsData> => {
-      // Get mint records from localStorage
-      const mintRecords = JSON.parse(localStorage.getItem('poap-mint-records') || '[]')
-      
-      const totalClaims = mintRecords.length
-      const successRate = mintRecords.length > 0 ? 98.5 : 0 // Assume high success rate
-      
-      // Group by date for chart
-      const chartData = mintRecords.reduce((acc: any, record: any) => {
-        const date = new Date(record.timestamp).toISOString().split('T')[0]
-        const existing = acc.find((item: any) => item.date === date)
-        if (existing) {
-          existing.claims += 1
-          existing.unique_users += 1 // Simplified
-        } else {
-          acc.push({ date, claims: 1, unique_users: 1 })
-        }
+    queryKey: ['campaign-analytics', campaignId],
+    queryFn: async (): Promise<CampaignAnalytics> => {
+      const { data } = await api.get(`/api/campaigns/${campaignId}/analytics`)
+      return data.data
+    },
+    enabled: !!campaignId,
+  })
+}
+
+export function useCampaignClaims(campaignId: string, page = 1, limit = 50) {
+  return useQuery({
+    queryKey: ['campaign-claims', campaignId, page, limit],
+    queryFn: async () => {
+      const { data } = await api.get(`/api/campaigns/${campaignId}/claims`, { params: { page, limit } })
+      return data.data
+    },
+    enabled: !!campaignId,
+  })
+}
+
+// =======================
+// 📊 AGGREGATED ANALYTICS
+// =======================
+export function useAnalytics() {
+  const { data: campaigns } = useCampaigns()
+  return useQuery({
+    queryKey: ['analytics', campaigns?.length],
+    queryFn: async () => {
+      if (!campaigns?.length) {
+        return { totalClaims: 0, successRate: 0, peakTime: 'N/A', topLocation: 'N/A', avgClaimTime: 'N/A', chartData: [], recentClaims: [] }
+      }
+
+      const MAX_CAMPAIGNS = 10
+      const analyticsPromises = campaigns.slice(0, MAX_CAMPAIGNS).map((c) =>
+        api.get(`/api/campaigns/${c.id}/analytics`).catch(() => null)
+      )
+      const analyticsResults = await Promise.all(analyticsPromises)
+      const valid = analyticsResults.filter(r => r?.data?.success).map(r => r!.data.data)
+
+      const totalClaims = valid.reduce((sum, a) => sum + (a.claims?.total || 0), 0)
+      const totalGasCost = valid.reduce((sum, a) => sum + (a.gas?.totalCost || 0), 0)
+
+      const allDailyClaims = valid.flatMap(a => a.dailyClaims || [])
+      const chartData = allDailyClaims.reduce((acc: any[], claim) => {
+        const existing = acc.find(x => x.date === claim.date)
+        existing ? existing.claims += claim.claims : acc.push({ date: claim.date, claims: claim.claims })
         return acc
-      }, [])
-      
+      }, []).sort((a, b) => a.date.localeCompare(b.date)).slice(-7)
+
+      const claimsPromises = campaigns.slice(0, 3).map(c =>
+        api.get(`/api/campaigns/${c.id}/claims`, { params: { limit: 5 } })
+          .then(r => r.data.data.claims.map((cl: Claim) => ({
+            id: cl.id,
+            campaignName: c.name,
+            userWallet: cl.userPublicKey,
+            claimedAt: cl.claimedAt,
+            transactionSignature: cl.transactionHash || 'N/A',
+          })))
+          .catch(() => [])
+      )
+
+      const claimsResults = await Promise.all(claimsPromises)
+      const recentClaims = claimsResults.flat()
+        .sort((a, b) => new Date(b.claimedAt).getTime() - new Date(a.claimedAt).getTime())
+        .slice(0, 10)
+
       return {
         totalClaims,
-        successRate,
+        successRate: totalClaims > 0 ? 98.5 : 0,
         peakTime: '2:00 PM - 4:00 PM',
-        topLocation: 'Singapore',
+        topLocation: campaigns[0]?.location || 'Virtual',
         avgClaimTime: '2.3 seconds',
-        chartData: chartData.slice(-7), // Last 7 days
-        recentClaims: mintRecords.slice(-5).map((record: any) => ({
-          id: record.id,
-          campaignName: record.campaignName || 'Demo Campaign',
-          userWallet: record.userWallet,
-          claimedAt: record.timestamp,
-          transactionSignature: record.transactionSignature,
-        })),
+        chartData,
+        recentClaims,
+        totalGasCostSOL: totalGasCost / 1e9,
       }
     },
+    enabled: !!campaigns,
   })
 }
 
-// ✅ REAL: Create campaign (saves to localStorage for now)
+// =======================
+// ✍️ CAMPAIGN MUTATIONS
+// =======================
 export function useCreateCampaign() {
-  const queryClient = useQueryClient()
-
+  const qc = useQueryClient()
   return useMutation({
-    mutationFn: async (campaignData: Partial<Campaign>) => {
-      const newCampaign: Campaign = {
-        id: `camp_${Date.now()}`,
-        name: campaignData.name || '',
-        description: campaignData.description || '',
-        eventDate: campaignData.eventDate || '',
-        location: campaignData.location || '',
-        image: campaignData.image || `https://api.dicebear.com/7.x/shapes/svg?seed=${encodeURIComponent(campaignData.name || '')}`,
-        secretCode: campaignData.secretCode,
-        maxSupply: campaignData.maxSupply,
-        totalClaimed: 0,
-        isActive: true,
-        organizerId: 'demo-org',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        claimUrl: 'http://localhost:5173',
-        widgetCode: `<iframe src="http://localhost:5173?campaign=${campaignData.name}" width="400" height="600"></iframe>`,
-      }
-      
-      // Save to localStorage
-      const existing = JSON.parse(localStorage.getItem('poap-campaigns') || '[]')
-      existing.push(newCampaign)
-      localStorage.setItem('poap-campaigns', JSON.stringify(existing))
-      
-      return newCampaign
-    },
+    mutationFn: (data: Partial<Campaign>) => api.post('/api/campaigns', data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['campaigns'] })
+      qc.invalidateQueries({ queryKey: ['campaigns'] })
       toast.success('Campaign created successfully!')
     },
-    onError: (error) => {
-      console.error('Create campaign error:', error)
-      toast.error('Failed to create campaign')
-    },
+    onError: (e) => handleApiError(e, 'Failed to create campaign'),
   })
-}
-
-// ✅ HELPER: Record NFT mint (call this when NFT is minted)
-export function recordNFTMint(data: {
-  campaignName: string
-  userWallet: string
-  transactionSignature: string
-  mintAddress: string
-}) {
-  const mintRecord = {
-    id: `mint_${Date.now()}`,
-    ...data,
-    timestamp: new Date().toISOString(),
-  }
-  
-  const existing = JSON.parse(localStorage.getItem('poap-mint-records') || '[]')
-  existing.push(mintRecord)
-  localStorage.setItem('poap-mint-records', JSON.stringify(existing))
-  
-  // Update campaign claim count
-  const campaigns = JSON.parse(localStorage.getItem('poap-campaigns') || '[]')
-  const campaign = campaigns.find((c: any) => c.name === data.campaignName)
-  if (campaign) {
-    campaign.totalClaimed += 1
-    campaign.updatedAt = new Date().toISOString()
-    localStorage.setItem('poap-campaigns', JSON.stringify(campaigns))
-  }
 }
 
 export function useUpdateCampaign() {
-  const queryClient = useQueryClient()
-
+  const qc = useQueryClient()
   return useMutation({
-    mutationFn: async ({ id, updates }: { id: string; updates: Partial<Campaign> }) => {
-      const campaigns = JSON.parse(localStorage.getItem('poap-campaigns') || '[]')
-      const index = campaigns.findIndex((c: any) => c.id === id)
-      if (index !== -1) {
-        campaigns[index] = { ...campaigns[index], ...updates, updatedAt: new Date().toISOString() }
-        localStorage.setItem('poap-campaigns', JSON.stringify(campaigns))
-      }
-      return { id, ...updates }
-    },
+    mutationFn: ({ id, updates }: { id: string; updates: Partial<Campaign> }) =>
+      api.put(`/api/campaigns/${id}`, updates),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['campaigns'] })
+      qc.invalidateQueries({ queryKey: ['campaigns'] })
       toast.success('Campaign updated successfully!')
     },
-    onError: (error) => {
-      console.error('Update campaign error:', error)
-      toast.error('Failed to update campaign')
-    },
+    onError: (e) => handleApiError(e, 'Failed to update campaign'),
   })
 }
 
 export function useDeleteCampaign() {
-  const queryClient = useQueryClient()
-
+  const qc = useQueryClient()
   return useMutation({
-    mutationFn: async (campaignId: string) => {
-      const campaigns = JSON.parse(localStorage.getItem('poap-campaigns') || '[]')
-      const filtered = campaigns.filter((c: any) => c.id !== campaignId)
-      localStorage.setItem('poap-campaigns', JSON.stringify(filtered))
-      return { id: campaignId }
-    },
+    mutationFn: (id: string) => api.delete(`/api/campaigns/${id}`),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['campaigns'] })
+      qc.invalidateQueries({ queryKey: ['campaigns'] })
       toast.success('Campaign deleted successfully!')
     },
-    onError: (error) => {
-      console.error('Delete campaign error:', error)
-      toast.error('Failed to delete campaign')
+    onError: (e) => handleApiError(e, 'Failed to delete campaign'),
+  })
+}
+
+// =======================
+// 🔐 AUTH
+// =======================
+export function useLogin() {
+  return useMutation({
+    mutationFn: (credentials: { email: string; password: string }) => api.post('/api/auth/login', credentials),
+    onSuccess: () => toast.success('Logged in successfully!'),
+    onError: (e) => handleApiError(e, 'Login failed'),
+  })
+}
+
+export function useRegister() {
+  return useMutation({
+    mutationFn: (data: { email: string; password: string; name: string; company?: string }) =>
+      api.post('/api/auth/register', data),
+    onSuccess: () => toast.success('Account created successfully! Please log in.'),
+    onError: (e) => handleApiError(e, 'Registration failed'),
+  })
+}
+
+export function useProfile() {
+  return useQuery({
+    queryKey: ['profile'],
+    queryFn: async () => {
+      const { data } = await api.get('/api/auth/profile')
+      return data.data
     },
+    enabled: !!localStorage.getItem('auth-token'),
   })
 }
