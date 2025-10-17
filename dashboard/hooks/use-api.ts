@@ -188,3 +188,14 @@ export function useDashboardStats() {
     error: campaignsQuery.error || relayerQuery.error,
   }
 }
+
+// ===== RECENT ACTIVITY =====
+
+export function useRecentActivity(limit?: number) {
+  return useQuery({
+    queryKey: ['recent-activity', limit],
+    queryFn: () => apiClient.getRecentActivity(limit),
+    refetchInterval: 30_000, // Refrescar cada 30 segundos
+    staleTime: 15_000, // Considerar datos frescos por 15 segundos
+  })
+}

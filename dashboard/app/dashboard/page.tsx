@@ -1,6 +1,6 @@
 'use client'
 
-import { useDashboardStats } from '@/hooks/use-api'
+import { useDashboardStats, useRecentActivity } from '@/hooks/use-api'
 import { StatsCards } from '@/components/dashboard/stats-cards'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -19,6 +19,7 @@ import Link from 'next/link'
 
 export default function DashboardPage() {
   const stats = useDashboardStats()
+  const { data: recentActivityData, isLoading: isLoadingActivity } = useRecentActivity(5)
 
   return (
     <div className="space-y-6">
@@ -57,57 +58,55 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {/* Activity items */}
-                <div className="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
-                  <div className="flex-shrink-0">
-                    <div className="h-8 w-8 bg-green-100 rounded-full flex items-center justify-center">
-                      <Users className="h-4 w-4 text-green-600" />
+                {isLoadingActivity ? (
+                  // Loading state
+                  <div className="space-y-3">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg animate-pulse">
+                        <div className="h-8 w-8 bg-gray-200 rounded-full"></div>
+                        <div className="flex-1 space-y-2">
+                          <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                          <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                        </div>
+                        <div className="h-6 w-8 bg-gray-200 rounded"></div>
+                      </div>
+                    ))}
+                  </div>
+                ) : recentActivityData?.data?.activities?.length > 0 ? (
+                  // Dynamic activity items
+                  recentActivityData?.data?.activities?.map((activity: any) => (
+                    <div key={activity.id} className="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
+                      <div className="flex-shrink-0">
+                        <div className={`h-8 w-8 rounded-full flex items-center justify-center ${
+                          activity.type === 'claim' ? 'bg-green-100' : 
+                          activity.type === 'campaign' ? 'bg-blue-100' : 'bg-purple-100'
+                        }`}>
+                          <span className="text-lg">{activity.icon}</span>
+                        </div>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900">
+                          {activity.title}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          {activity.description}
+                        </p>
+                      </div>
+                      <Badge variant={activity.badgeVariant || 'default'}>
+                        {activity.badge}
+                      </Badge>
                     </div>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900">
-                      New POAP claimed
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      Solana Breakpoint 2024 • 2 minutes ago
-                    </p>
-                  </div>
-                  <Badge variant="success">+1</Badge>
-                </div>
-
-                <div className="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
-                  <div className="flex-shrink-0">
-                    <div className="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center">
-                      <Calendar className="h-4 w-4 text-blue-600" />
+                  ))
+                ) : (
+                  // Empty state
+                  <div className="text-center py-8">
+                    <div className="text-gray-400 mb-2">
+                      <Clock className="h-12 w-12 mx-auto" />
                     </div>
+                    <p className="text-gray-500 text-sm">No recent activity</p>
+                    <p className="text-gray-400 text-xs mt-1">Activity will appear here as users claim POAPs</p>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900">
-                      Campaign updated
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      Web3 Conference 2024 • 1 hour ago
-                    </p>
-                  </div>
-                  <Badge variant="secondary">Updated</Badge>
-                </div>
-
-                <div className="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
-                  <div className="flex-shrink-0">
-                    <div className="h-8 w-8 bg-purple-100 rounded-full flex items-center justify-center">
-                      <Zap className="h-4 w-4 text-purple-600" />
-                    </div>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900">
-                      API key created
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      Production API Key • 3 hours ago
-                    </p>
-                  </div>
-                  <Badge variant="default">New</Badge>
-                </div>
+                )}
 
                 <div className="text-center pt-4">
                   <Link href="/dashboard/analytics">
