@@ -34,7 +34,6 @@ import {
   Award
 } from 'lucide-react'
 import { formatNumber, formatSOL } from '@/lib/utils'
-import { AnalyticsDebug } from '@/components/debug/AnalyticsDebug'
 
 export default function AnalyticsPage() {
   const { isAuthenticated, token } = useAuth()
@@ -140,7 +139,6 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Debug Component */}
-      <AnalyticsDebug />
 
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
