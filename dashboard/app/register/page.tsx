@@ -20,27 +20,36 @@ export default function RegisterPage() {
     confirmPassword: '',
   })
   const [error, setError] = useState('')
-  const { register, isLoading, isAuthenticated } = useAuth()
+  const { register, user, isLoading, isAuthenticated } = useAuth()
   const router = useRouter()
 
+  // 🔁 Si ya está autenticado, redirige según el rol
   useEffect(() => {
-    if (isAuthenticated) {
-      router.push('/dashboard')
+    if (isAuthenticated && user) {
+      const redirectPath =
+        user.role === 'USER'
+          ? '/user'
+          : user.role === 'ADMIN'
+          ? '/dashboard'
+          : '/user'
+      router.push(redirectPath)
     }
-  }, [isAuthenticated, router])
+  }, [isAuthenticated, user, router])
 
+  // 🧩 Manejador de cambios
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({
       ...prev,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     }))
   }
 
+  // 🧠 Envío del formulario
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
 
-    // Validation
+    // Validaciones básicas
     if (!formData.email || !formData.name || !formData.password) {
       setError('Please fill in all required fields')
       return
@@ -56,24 +65,34 @@ export default function RegisterPage() {
       return
     }
 
+    // Enviar datos al backend
     const result = await register({
       email: formData.email,
       name: formData.name,
       company: formData.company || undefined,
       password: formData.password,
     })
-    
+
+    console.log('🆕 REGISTER result:', result)
+
     if (result.success) {
-      router.push('/dashboard')
+      // ✅ Usa la ruta devuelta o el rol
+      const redirectPath =
+        result.redirect ||
+        (result.role === 'USER' ? '/user' : '/dashboard')
+
+      // Animación corta antes de redirigir
+      setTimeout(() => router.push(redirectPath), 800)
     } else {
       setError(result.error || 'Registration failed')
     }
   }
 
-  if (isAuthenticated) {
-    return null // Will redirect to dashboard
-  }
+  if (isAuthenticated) return null
 
+  // ==========================
+  // 💄 Render
+  // ==========================
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
@@ -81,20 +100,27 @@ export default function RegisterPage() {
         <div className="text-center mb-8">
           <div className="flex items-center justify-center space-x-2 mb-4">
             <Zap className="h-8 w-8 text-indigo-600" />
-            <span className="text-2xl font-bold text-gray-900">Gasless infrastructure</span>
+            <span className="text-2xl font-bold text-gray-900">
+              Gasless Infrastructure
+            </span>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Create your account</h1>
-          <p className="text-gray-600 mt-2">Start managing campaigns today</p>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Create your account
+          </h1>
+          <p className="text-gray-600 mt-2">
+            Start managing or claiming campaigns
+          </p>
         </div>
 
-        {/* Registration Form */}
+        {/* Form */}
         <Card>
           <CardHeader>
             <CardTitle>Sign up</CardTitle>
             <CardDescription>
-              Create your organizer account to get started
+              Create your account to get started with Solana POAPs
             </CardDescription>
           </CardHeader>
+
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               {error && (
@@ -103,6 +129,7 @@ export default function RegisterPage() {
                 </Alert>
               )}
 
+              {/* Email */}
               <div className="space-y-2">
                 <Label htmlFor="email">Email *</Label>
                 <div className="relative">
@@ -111,7 +138,7 @@ export default function RegisterPage() {
                     id="email"
                     name="email"
                     type="email"
-                    placeholder="organizer@example.com"
+                    placeholder="you@example.com"
                     value={formData.email}
                     onChange={handleChange}
                     className="pl-10"
@@ -121,6 +148,7 @@ export default function RegisterPage() {
                 </div>
               </div>
 
+              {/* Name */}
               <div className="space-y-2">
                 <Label htmlFor="name">Full Name *</Label>
                 <div className="relative">
@@ -139,6 +167,7 @@ export default function RegisterPage() {
                 </div>
               </div>
 
+              {/* Company */}
               <div className="space-y-2">
                 <Label htmlFor="company">Company (Optional)</Label>
                 <div className="relative">
@@ -156,6 +185,7 @@ export default function RegisterPage() {
                 </div>
               </div>
 
+              {/* Password */}
               <div className="space-y-2">
                 <Label htmlFor="password">Password *</Label>
                 <div className="relative">
@@ -174,6 +204,7 @@ export default function RegisterPage() {
                 </div>
               </div>
 
+              {/* Confirm Password */}
               <div className="space-y-2">
                 <Label htmlFor="confirmPassword">Confirm Password *</Label>
                 <div className="relative">
@@ -192,6 +223,7 @@ export default function RegisterPage() {
                 </div>
               </div>
 
+              {/* Submit */}
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? (
                   <>
@@ -204,10 +236,14 @@ export default function RegisterPage() {
               </Button>
             </form>
 
+            {/* Login Link */}
             <div className="mt-6 text-center">
               <p className="text-sm text-gray-600">
                 Already have an account?{' '}
-                <Link href="/login" className="text-indigo-600 hover:text-indigo-500 font-medium">
+                <Link
+                  href="/login"
+                  className="text-indigo-600 hover:text-indigo-500 font-medium"
+                >
                   Sign in
                 </Link>
               </p>

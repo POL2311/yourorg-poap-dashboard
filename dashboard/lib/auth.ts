@@ -26,75 +26,114 @@ export class AuthManager {
     this.loadFromStorage()
   }
 
+  /**
+   * Carga sesión desde cookies/localStorage de manera segura.
+   * Previene errores de JSON inválido ("undefined" o vacío).
+   */
   private loadFromStorage() {
-    if (typeof window !== 'undefined') {
-      const token = Cookies.get('auth-token')
-      const organizerData = localStorage.getItem('organizer')
-      
-      if (token && organizerData) {
-        try {
-          const organizer = JSON.parse(organizerData)
-          this.state = {
-            isAuthenticated: true,
-            organizer,
-            token,
-          }
-        } catch (error) {
-          console.error('Error parsing organizer data:', error)
-          this.clearAuth()
+    if (typeof window === 'undefined') return
+
+    const token = Cookies.get('auth-token')
+    const organizerData = localStorage.getItem('organizer')
+
+    if (token && organizerData && organizerData !== 'undefined') {
+      try {
+        const organizer = JSON.parse(organizerData)
+        this.state = {
+          isAuthenticated: true,
+          organizer,
+          token,
         }
+      } catch (error) {
+        console.error('❌ Error parsing organizer data:', error)
+        this.clearAuth()
+      }
+    } else {
+      // Limpieza preventiva si hay datos inválidos
+      if (organizerData === 'undefined' || !organizerData) {
+        this.clearAuth()
       }
     }
   }
 
-  login(token: string, organizer: Organizer) {
+  /**
+   * Guarda sesión de usuario/organizador.
+   */
+  login(token: string, organizer: any) {
+    if (!token || !organizer) {
+      console.error('⚠️ Login llamado sin datos válidos')
+      return
+    }
+
+    // Guarda estado interno
     this.state = {
       isAuthenticated: true,
       organizer,
       token,
     }
-    
-    // Store in cookies and localStorage
-    Cookies.set('auth-token', token, { expires: 7 }) // 7 days
+
+    // Persistencia
+    Cookies.set('auth-token', token, { expires: 7 }) // 7 días
     localStorage.setItem('organizer', JSON.stringify(organizer))
+
+    console.log('✅ Sesión guardada:', organizer)
   }
 
+  /**
+   * Cierra sesión y limpia almacenamiento.
+   */
   logout() {
     this.clearAuth()
-    // Redirect to login page
     if (typeof window !== 'undefined') {
       window.location.href = '/login'
     }
   }
 
+  /**
+   * Limpieza completa de sesión.
+   */
   private clearAuth() {
     this.state = {
       isAuthenticated: false,
       organizer: null,
       token: null,
     }
-    
-    // Clear storage
+
     Cookies.remove('auth-token')
     localStorage.removeItem('organizer')
   }
 
+  /**
+   * Obtiene el estado actual.
+   */
   getState(): AuthState {
     return { ...this.state }
   }
 
+  /**
+   * Verifica autenticación.
+   */
   isAuthenticated(): boolean {
     return this.state.isAuthenticated
   }
 
+  /**
+   * Devuelve el organizador/usuario autenticado.
+   */
   getOrganizer(): Organizer | null {
     return this.state.organizer
   }
 
+  /**
+   * Obtiene token JWT.
+   */
   getToken(): string | null {
     return this.state.token
   }
 
+  /**
+   * Actualiza los datos del organizador/usuario.
+   */
   updateOrganizer(organizer: Organizer) {
     if (this.state.isAuthenticated) {
       this.state.organizer = organizer
@@ -102,42 +141,46 @@ export class AuthManager {
     }
   }
 
-  // Check if user has permission for certain actions based on tier
+  // ===========================================================
+  // Reglas de negocio basadas en el plan (tier)
+  // ===========================================================
+
   canCreateCampaign(currentCampaigns: number): boolean {
     if (!this.state.organizer) return false
-    
+
     const limits = {
       free: 3,
       pro: 50,
       enterprise: 500,
     }
-    
-    return currentCampaigns < limits[this.state.organizer.tier]
+
+    return currentCampaigns < (limits as any)[this.state.organizer.tier]
   }
 
   canCreateApiKey(currentKeys: number): boolean {
     if (!this.state.organizer) return false
-    
+
     const limits = {
       free: 2,
       pro: 10,
       enterprise: 50,
     }
-    
-    return currentKeys < limits[this.state.organizer.tier]
+
+    return currentKeys < (limits as any)[this.state.organizer.tier]
   }
 
   getMonthlyClaimsLimit(): number {
     if (!this.state.organizer) return 0
-    
+
     const limits = {
       free: 100,
       pro: 5000,
       enterprise: 50000,
     }
-    
-    return limits[this.state.organizer.tier]
+
+    return (limits as any)[this.state.organizer.tier] || 0
   }
 }
 
+// Exporta instancia única
 export const authManager = AuthManager.getInstance()
