@@ -154,6 +154,92 @@ class ApiClient {
     return response.data
   }
 
+  async getUserClaimStats(): Promise<ApiResponse<{
+    userId: string
+    totalClaims: number
+    monthlyStats: Array<{ month: string; count: number }>
+    badges: Array<{
+      id: string
+      name: string
+      description: string
+      icon: string
+      rarity: string
+      unlocked: boolean
+      progress?: number
+      target?: number
+    }>
+    level: {
+      level: number
+      name: string
+      color: string
+    }
+  }>> {
+    const response: AxiosResponse<ApiResponse<{
+      userId: string
+      totalClaims: number
+      monthlyStats: Array<{ month: string; count: number }>
+      badges: Array<{
+        id: string
+        name: string
+        description: string
+        icon: string
+        rarity: string
+        unlocked: boolean
+        progress?: number
+        target?: number
+      }>
+      level: {
+        level: number
+        name: string
+        color: string
+      }
+    }>> = await this.client.get('/user/claim-stats')
+    return response.data
+  }
+
+  async getUserClaimStatsByWallet(userPublicKey: string): Promise<ApiResponse<{
+    userPublicKey: string
+    totalClaims: number
+    monthlyStats: Array<{ month: string; count: number }>
+    badges: Array<{
+      id: string
+      name: string
+      description: string
+      icon: string
+      rarity: string
+      unlocked: boolean
+      progress?: number
+      target?: number
+    }>
+    level: {
+      level: number
+      name: string
+      color: string
+    }
+  }>> {
+    const response: AxiosResponse<ApiResponse<{
+      userPublicKey: string
+      totalClaims: number
+      monthlyStats: Array<{ month: string; count: number }>
+      badges: Array<{
+        id: string
+        name: string
+        description: string
+        icon: string
+        rarity: string
+        unlocked: boolean
+        progress?: number
+        target?: number
+      }>
+      level: {
+        level: number
+        name: string
+        color: string
+      }
+    }>> = await this.client.get(`/poap/user/${userPublicKey}/stats`)
+    return response.data
+  }
+
   // ===== SYSTEM ENDPOINTS =====
 
   async getRelayerStats(): Promise<ApiResponse<RelayerStats>> {
