@@ -1,37 +1,17 @@
-// dashboard/src/pages/Dashboard.tsx - ORGANIZER DASHBOARD
+// dashboard/src/pages/Dashboard.tsx - UPDATED ORGANIZER DASHBOARD
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../hooks/useAuth';
-import { CampaignCreator } from '../components/CampaignCreator';
-import { AnalyticsChart } from '../components/AnalyticsChart';
-import { WidgetGenerator } from '../components/WidgetGenerator';
-import { SubscriptionStatus } from '../components/SubscriptionStatus';
+import { useAuth } from '../../hooks/useAuth';
+import { useCampaigns, useAnalytics } from '../../hooks/useApi';
+import { CampaignCreator } from '../../components/forms/CampaignCreator';
+import { AnalyticsChart } from '../../components/analytics/AnalyticsChart';
+import { WidgetGenerator } from '../../components/widgets/WidgetGenerator';
+import { SubscriptionStatus } from '../../components/subscription/SubscriptionStatus';
 
-export const OrganizerDashboard: React.FC = () => {
+export const Dashboard: React.FC = () => {
   const { user, isLoading } = useAuth();
-  const [campaigns, setCampaigns] = useState([]);
-  const [analytics, setAnalytics] = useState(null);
+  const { data: campaigns = [], refetch: refetchCampaigns } = useCampaigns();
+  const { data: analytics } = useAnalytics();
   const [activeTab, setActiveTab] = useState('overview');
-
-  useEffect(() => {
-    if (user) {
-      loadDashboardData();
-    }
-  }, [user]);
-
-  const loadDashboardData = async () => {
-    try {
-      // Load campaigns and analytics
-      const [campaignsRes, analyticsRes] = await Promise.all([
-        fetch('/api/organizer/campaigns'),
-        fetch('/api/organizer/analytics')
-      ]);
-      
-      setCampaigns(await campaignsRes.json());
-      setAnalytics(await analyticsRes.json());
-    } catch (error) {
-      console.error('Error loading dashboard data:', error);
-    }
-  };
 
   if (isLoading) {
     return <div className="loading">Loading dashboard...</div>;
@@ -89,7 +69,7 @@ export const OrganizerDashboard: React.FC = () => {
         )}
         
         {activeTab === 'campaigns' && (
-          <CampaignsTab campaigns={campaigns} onCampaignUpdate={loadDashboardData} />
+          <CampaignsTab campaigns={campaigns} onCampaignUpdate={refetchCampaigns} />
         )}
         
         {activeTab === 'analytics' && (

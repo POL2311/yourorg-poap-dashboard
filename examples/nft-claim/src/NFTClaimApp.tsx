@@ -88,6 +88,39 @@ export default function NFTClaimApp() {
   )
 }
 
+// ✅ HELPER: Record mint for dashboard analytics
+function recordMintForDashboard(data: {
+  campaignName: string
+  userWallet: string
+  transactionSignature: string
+  mintAddress: string
+}) {
+  try {
+    const mintRecord = {
+      id: `mint_${Date.now()}`,
+      ...data,
+      timestamp: new Date().toISOString(),
+    }
+    
+    const existing = JSON.parse(localStorage.getItem('poap-mint-records') || '[]')
+    existing.push(mintRecord)
+    localStorage.setItem('poap-mint-records', JSON.stringify(existing))
+    
+    // Update campaign claim count
+    const campaigns = JSON.parse(localStorage.getItem('poap-campaigns') || '[]')
+    const campaign = campaigns.find((c: any) => c.name === data.campaignName)
+    if (campaign) {
+      campaign.totalClaimed += 1
+      campaign.updatedAt = new Date().toISOString()
+      localStorage.setItem('poap-campaigns', JSON.stringify(campaigns))
+    }
+    
+    console.log('📊 Recorded mint for dashboard analytics:', mintRecord)
+  } catch (error) {
+    console.warn('Failed to record mint for dashboard:', error)
+  }
+}
+
 function DevnetNFTClaimSection() {
   const { publicKey } = useWallet()
   const [isLoading, setIsLoading] = useState(false)
@@ -137,13 +170,20 @@ function DevnetNFTClaimSection() {
 
       if (response.data.success) {
         const { 
-          nftMint, 
+          nft,
           transactionSignature, 
-          userTokenAccount, 
           gasCostPaidByRelayer,
           metadata,
           relayerPublicKey
         } = response.data.data
+        
+        // ✅ Record this mint for dashboard analytics
+        recordMintForDashboard({
+          campaignName: 'Devnet Demo NFT',
+          userWallet: publicKey.toString(),
+          transactionSignature: nft.transactionSignature || transactionSignature,
+          mintAddress: nft.mint,
+        })
         
         toast.dismiss(loadingToast)
         
@@ -165,9 +205,9 @@ function DevnetNFTClaimSection() {
           toast.success(
             <div style={{ fontSize: 12 }}>
               <div style={{ fontWeight: 'bold', marginBottom: 4 }}>🎨 {metadata.name}</div>
-              <div>📍 Mint: {nftMint.slice(0, 12)}...{nftMint.slice(-12)}</div>
-              <div>📦 TX: {transactionSignature.slice(0, 12)}...{transactionSignature.slice(-12)}</div>
-              <div>🔗 <a href={`https://explorer.solana.com/tx/${transactionSignature}?cluster=devnet`} target="_blank" style={{color: '#4ade80'}}>View on Devnet Explorer</a></div>
+              <div>📍 Mint: {nft.mint.slice(0, 12)}...{nft.mint.slice(-12)}</div>
+              <div>📦 TX: {nft.transactionSignature.slice(0, 12)}...{nft.transactionSignature.slice(-12)}</div>
+              <div>🔗 <a href={`https://explorer.solana.com/tx/${nft.transactionSignature}?cluster=devnet`} target="_blank" style={{color: '#4ade80'}}>View on Devnet Explorer</a></div>
             </div>,
             { duration: 20000 }
           )
@@ -175,9 +215,9 @@ function DevnetNFTClaimSection() {
 
         // Add NFT to local list
         const newNFT = {
-          mint: nftMint,
-          tokenAccount: userTokenAccount,
-          transaction: transactionSignature,
+          mint: nft.mint,
+          tokenAccount: nft.tokenAccount,
+          transaction: nft.transactionSignature,
           metadata,
           timestamp: new Date().toISOString(),
           gasCost: gasCostPaidByRelayer

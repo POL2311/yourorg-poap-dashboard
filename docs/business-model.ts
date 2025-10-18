@@ -12,7 +12,7 @@ export const PRICING_TIERS = {
       'Email support'
     ],
     limitations: [
-      'POAP Infrastructure branding',
+      'Gasless infrastructure branding',
       'No custom domain',
       'Limited customization'
     ]
