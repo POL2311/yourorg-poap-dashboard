@@ -15,15 +15,23 @@ export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
-  const { login, isLoading, isAuthenticated } = useAuth()
+  const { login, isLoading, isAuthenticated, user } = useAuth()
   const router = useRouter()
 
+  // 🔁 Redirigir si ya está autenticado
   useEffect(() => {
-    if (isAuthenticated) {
-      router.push('/dashboard')
+    if (isAuthenticated && user) {
+      const redirectPath =
+        user?.role === 'USER'
+          ? '/user'
+          : user?.role === 'ADMIN'
+          ? '/dashboard'
+          : '/user' // fallback si no hay rol definido
+      router.push(redirectPath)
     }
-  }, [isAuthenticated, router])
+  }, [isAuthenticated, user, router])
 
+  // 🧠 Manejador del formulario
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
@@ -33,48 +41,63 @@ export default function LoginPage() {
       return
     }
 
-    const result = await login({ email, password })
-    
-    if (result.success) {
-      router.push('/dashboard')
-    } else {
-      setError(result.error || 'Login failed')
+    try {
+      const result = await login({ email, password })
+      console.log('🔐 Login result:', result)
+
+      if (result.success) {
+        // ✅ Usa la ruta devuelta por el backend o decide según el rol
+        const redirectPath =
+          result.redirect ||
+          (result.role === 'USER' ? '/user' : '/dashboard')
+
+        router.push(redirectPath)
+      } else {
+        setError(result.error || 'Login failed')
+      }
+    } catch (err) {
+      console.error('Login error:', err)
+      setError('An unexpected error occurred. Please try again.')
     }
   }
 
-  if (isAuthenticated) {
-    return null // Will redirect to dashboard
-  }
+  // 🚫 Evita mostrar el formulario si ya está autenticado
+  if (isAuthenticated) return null
 
+  // ==========================
+  // 💄 Render del formulario
+  // ==========================
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        {/* Header */}
+        {/* ===== Header ===== */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center space-x-2 mb-4">
             <Zap className="h-8 w-8 text-indigo-600" />
-            <span className="text-2xl font-bold text-gray-900">Gasless infrastructure</span>
+            <span className="text-2xl font-bold text-gray-900">Gasless Infrastructure</span>
           </div>
           <h1 className="text-2xl font-bold text-gray-900">Welcome back</h1>
-          <p className="text-gray-600 mt-2">Sign in to your organizer dashboard</p>
+          <p className="text-gray-600 mt-2">Sign in to your account</p>
         </div>
 
-        {/* Login Form */}
+        {/* ===== Login Form ===== */}
         <Card>
           <CardHeader>
             <CardTitle>Login</CardTitle>
             <CardDescription>
-              Enter your credentials to access your dashboard
+              Enter your credentials to access your account
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Errores */}
               {error && (
                 <Alert variant="destructive">
                   <AlertDescription>{error}</AlertDescription>
                 </Alert>
               )}
 
+              {/* Email */}
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <div className="relative">
@@ -82,15 +105,17 @@ export default function LoginPage() {
                   <Input
                     id="email"
                     type="email"
-                    placeholder="organizer@example.com"
+                    placeholder="you@example.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="pl-10"
                     disabled={isLoading}
+                    required
                   />
                 </div>
               </div>
 
+              {/* Password */}
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
                 <div className="relative">
@@ -103,10 +128,12 @@ export default function LoginPage() {
                     onChange={(e) => setPassword(e.target.value)}
                     className="pl-10"
                     disabled={isLoading}
+                    required
                   />
                 </div>
               </div>
 
+              {/* Submit */}
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? (
                   <>
@@ -119,21 +146,16 @@ export default function LoginPage() {
               </Button>
             </form>
 
+            {/* Register Link */}
             <div className="mt-6 text-center">
               <p className="text-sm text-gray-600">
-                Don't have an account?{' '}
-                <Link href="/register" className="text-indigo-600 hover:text-indigo-500 font-medium">
+                Don’t have an account?{' '}
+                <Link
+                  href="/register"
+                  className="text-indigo-600 hover:text-indigo-500 font-medium"
+                >
                   Sign up
                 </Link>
-              </p>
-            </div>
-
-            {/* Demo Credentials */}
-            <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-              <p className="text-sm font-medium text-gray-700 mb-2">Demo Credentials:</p>
-              <p className="text-xs text-gray-600">
-                Email: demo@poap-infra.com<br />
-                Password: demo123
               </p>
             </div>
           </CardContent>

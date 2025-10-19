@@ -1,12 +1,33 @@
+// ==============================
+// Tipos base / roles
+// ==============================
+export type Role = 'USER' | 'ORGANIZER' | 'ADMIN'
+
+// ==============================
+// Entidades principales
+// ==============================
 export interface Organizer {
   id: string
   email: string
   name: string
-  company?: string
+  company?: string | null
   tier: 'free' | 'pro' | 'enterprise'
   isActive: boolean
   createdAt: string
   updatedAt: string
+  /** Rol del actor autenticado. En organizers suele ser 'ORGANIZER' o 'ADMIN'. */
+  role?: Role
+}
+
+/** Perfil para usuarios finales (no organizers) */
+export interface UserProfile {
+  id: string
+  email: string
+  name: string
+  createdAt: string
+  updatedAt?: string
+  role: 'USER'
+  company?: string | null
 }
 
 export interface Campaign {
@@ -67,12 +88,18 @@ export interface Usage {
   gasCost: number
 }
 
+// ==============================
+// Respuestas API
+// ==============================
 export interface AuthResponse {
   success: boolean
   data?: {
     organizer: Organizer
     token: string
     message: string
+    /** Opcional: útil para redirecciones inmediatas en el front */
+    role?: Role
+    redirect?: string
   }
   error?: string
 }
@@ -83,12 +110,16 @@ export interface ApiResponse<T = any> {
   error?: string
   details?: any
 }
-export interface PublicCampaign extends Omit<Campaign,
-  'organizerId' | 'createdAt' | 'updatedAt' | 'organizer'> {
+
+export interface PublicCampaign extends Omit<
+  Campaign,
+  'organizerId' | 'createdAt' | 'updatedAt' | 'organizer'
+> {
   isActive: boolean
   _count?: { claims: number }
   claimsRemaining: number | null
 }
+
 export interface PaginatedResponse<T> {
   success: boolean
   data?: {
@@ -141,7 +172,9 @@ export interface RelayerStats {
   timestamp: string
 }
 
-// Form types
+// ==============================
+// Formularios
+// ==============================
 export interface LoginForm {
   email: string
   password: string
@@ -152,6 +185,8 @@ export interface RegisterForm {
   name: string
   company?: string
   password: string
+  /** Si en algún momento soportas registro de usuario final: 'user' | 'organizer' */
+  type?: 'user' | 'organizer'
 }
 
 export interface CampaignForm {
@@ -170,14 +205,16 @@ export interface ApiKeyForm {
   name: string
 }
 
-// Tier limits
+// ==============================
+// Límites por plan
+// ==============================
 export interface TierLimits {
   campaigns: number
   monthlyClaims: number
   apiKeys: number
 }
 
-export const TIER_LIMITS: Record<string, TierLimits> = {
+export const TIER_LIMITS: Record<'free' | 'pro' | 'enterprise', TierLimits> = {
   free: {
     campaigns: 3,
     monthlyClaims: 100,
