@@ -20,9 +20,11 @@ import {
   Settings, 
   User,
   Menu,
-  X
+  X,
+  UserCircle
 } from 'lucide-react'
 import { cn, formatNumber, formatSOL, getInitials } from '@/lib/utils'
+import Link from 'next/link'
 
 interface DashboardHeaderProps {
   onMenuToggle: () => void
@@ -102,9 +104,11 @@ export function DashboardHeader({ onMenuToggle, isMobileMenuOpen }: DashboardHea
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                <User className="mr-2 h-4 w-4" />
-                Profile
+              <DropdownMenuItem asChild>
+                <Link href="/user" className="flex items-center">
+                  <UserCircle className="mr-2 h-4 w-4" />
+                  Profile
+                </Link>
               </DropdownMenuItem>
               <DropdownMenuItem>
                 <Settings className="mr-2 h-4 w-4" />
