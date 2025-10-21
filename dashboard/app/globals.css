@@ -217,3 +217,27 @@
     radial-gradient(1200px 400px at 50% -10%, rgba(0,0,0,0.25), transparent),
     linear-gradient(180deg,#0b0f14 0%, #0b0f14 60%, #0a0e13 100%);
 }
+:root {
+  --bg: 16 22 35;      /* #101623 aprox */
+  --fg: 255 255 255;
+  --card: 255 255 255 / 0.06;
+  --border: 255 255 255 / 0.14;
+  --muted: 255 255 255 / 0.70;
+
+  --accent: 168 85 247;   /* fucsia */
+  --success: 16 185 129;  /* esmeralda */
+  --info: 56 189 248;     /* sky */
+}
+
+body {
+  color: rgb(var(--fg));
+  background:
+    radial-gradient(1000px 300px at 10% -10%, rgba(16,185,129,.10), transparent),
+    radial-gradient(900px 270px at 95% -5%, rgba(168,85,247,.10), transparent),
+    rgb(var(--bg));
+}
+
+/* util glass */
+.glass {
+  @apply border rounded-2xl border-white/15 bg-white/10 backdrop-blur-xl;
+}

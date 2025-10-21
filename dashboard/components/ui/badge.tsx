@@ -3,24 +3,31 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const badgeVariants = cva(
-  "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+  "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors " +
+  "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
   {
     variants: {
       variant: {
-        default:
-          "border-transparent bg-primary text-primary-foreground hover:bg-primary/80",
-        secondary:
-          "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        destructive:
-          "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
-        outline: "text-foreground",
-        common: "border-transparent bg-gray-100 text-gray-800 hover:bg-gray-200",
-        uncommon: "border-transparent bg-green-100 text-green-800 hover:bg-green-200",
-        rare: "border-transparent bg-blue-100 text-blue-800 hover:bg-blue-200",
-        epic: "border-transparent bg-purple-100 text-purple-800 hover:bg-purple-200",
-        legendary: "border-transparent bg-yellow-100 text-yellow-800 hover:bg-yellow-200",
-        mythic: "border-transparent bg-pink-100 text-pink-800 hover:bg-pink-200",
-        locked: "border-transparent bg-gray-50 text-gray-400 hover:bg-gray-100",
+        // Glass base
+        default:    "border-white/20 bg-white/10 text-white hover:bg-white/15",
+        secondary:  "border-white/15 bg-white/5  text-white hover:bg-white/10",
+        outline:    "text-white border-white/25",
+
+        // Estados
+        destructive:"border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
+
+        // Custom (dashboard)
+        success:    "border-emerald-400/30 bg-emerald-500/20 text-emerald-200",
+        warning:    "border-yellow-400/30  bg-yellow-500/20  text-yellow-200",
+
+        // Badges de rareza (si los usas en Badges)
+        common:     "border-white/10 bg-white/5 text-white/80",
+        uncommon:   "border-emerald-400/30 bg-emerald-500/20 text-emerald-100",
+        rare:       "border-sky-400/30     bg-sky-500/20     text-sky-100",
+        epic:       "border-purple-400/30  bg-purple-500/20  text-purple-100",
+        legendary:  "border-amber-400/30   bg-amber-500/20   text-amber-100",
+        mythic:     "border-pink-400/30    bg-pink-500/20    text-pink-100",
+        locked:     "border-white/10 bg-white/5 text-white/50",
       },
     },
     defaultVariants: {
@@ -34,9 +41,7 @@ export interface BadgeProps
     VariantProps<typeof badgeVariants> {}
 
 function Badge({ className, variant, ...props }: BadgeProps) {
-  return (
-    <div className={cn(badgeVariants({ variant }), className)} {...props} />
-  )
+  return <div className={cn(badgeVariants({ variant }), className)} {...props} />
 }
 
 export { Badge, badgeVariants }
