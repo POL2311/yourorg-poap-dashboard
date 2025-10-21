@@ -5,15 +5,13 @@ import { StatsCards } from '@/components/dashboard/stats-cards'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { 
-  Plus, 
-  Calendar, 
-  Users, 
+import {
+  Plus,
   TrendingUp,
   ExternalLink,
   Zap,
   Shield,
-  Clock
+  Clock,
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -23,94 +21,111 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      {/* Welcome Section */}
+      {/* Top / Welcome */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-600 mt-1">
-            Welcome back! Here's what's happening with your POAP campaigns.
+          <h1 className="text-3xl font-bold text-white">Dashboard</h1>
+          <p className="mt-1 text-white/70">
+            Welcome back! Here&apos;s what&apos;s happening with your POAP campaigns.
           </p>
         </div>
+
         <Link href="/dashboard/campaigns">
-          <Button>
+          <Button className="rounded-xl bg-white text-gray-900 hover:bg-white/90">
             <Plus className="mr-2 h-4 w-4" />
             New Campaign
           </Button>
         </Link>
       </div>
 
-      {/* Stats Cards */}
+      {/* Stats */}
       <StatsCards stats={stats} />
 
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Grid */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Recent Activity */}
         <div className="lg:col-span-2">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center">
+              <CardTitle className="flex items-center text-white">
                 <Clock className="mr-2 h-5 w-5" />
                 Recent Activity
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-white/70">
                 Latest claims and campaign updates
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 {isLoadingActivity ? (
-                  // Loading state
+                  // Skeleton (oscuro)
                   <div className="space-y-3">
                     {[1, 2, 3].map((i) => (
-                      <div key={i} className="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg animate-pulse">
-                        <div className="h-8 w-8 bg-gray-200 rounded-full"></div>
+                      <div
+                        key={i}
+                        className="flex items-center space-x-4 rounded-xl border border-white/10 bg-white/5 p-3 backdrop-blur animate-pulse"
+                      >
+                        <div className="h-8 w-8 rounded-full bg-white/10" />
                         <div className="flex-1 space-y-2">
-                          <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                          <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                          <div className="h-4 w-3/4 rounded bg-white/10" />
+                          <div className="h-3 w-1/2 rounded bg-white/10" />
                         </div>
-                        <div className="h-6 w-8 bg-gray-200 rounded"></div>
+                        <div className="h-6 w-12 rounded-full bg-white/10" />
                       </div>
                     ))}
                   </div>
                 ) : recentActivityData?.data?.activities?.length > 0 ? (
-                  // Dynamic activity items
-                  recentActivityData?.data?.activities?.map((activity: any) => (
-                    <div key={activity.id} className="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
+                  // Items
+                  recentActivityData.data.activities.map((activity: any) => (
+                    <div
+                      key={activity.id}
+                      className="flex items-center space-x-4 rounded-xl border border-white/10 bg-white/5 p-3 backdrop-blur"
+                    >
                       <div className="flex-shrink-0">
-                        <div className={`h-8 w-8 rounded-full flex items-center justify-center ${
-                          activity.type === 'claim' ? 'bg-green-100' : 
-                          activity.type === 'campaign' ? 'bg-blue-100' : 'bg-purple-100'
-                        }`}>
-                          <span className="text-lg">{activity.icon}</span>
+                        <div
+                          className={[
+                            'h-8 w-8 rounded-full grid place-items-center',
+                            activity.type === 'claim'
+                              ? 'bg-emerald-500/20'
+                              : activity.type === 'campaign'
+                              ? 'bg-sky-500/20'
+                              : 'bg-purple-500/20',
+                          ].join(' ')}
+                        >
+                          <span className="text-white/90 text-lg">{activity.icon}</span>
                         </div>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900">
-                          {activity.title}
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          {activity.description}
-                        </p>
+
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-white">{activity.title}</p>
+                        <p className="truncate text-sm text-white/70">{activity.description}</p>
                       </div>
-                      <Badge variant={activity.badgeVariant || 'default'}>
+
+                      <Badge variant={activity.badgeVariant || 'default'} className="whitespace-nowrap">
                         {activity.badge}
                       </Badge>
                     </div>
                   ))
                 ) : (
-                  // Empty state
-                  <div className="text-center py-8">
-                    <div className="text-gray-400 mb-2">
-                      <Clock className="h-12 w-12 mx-auto" />
+                  // Empty
+                  <div className="py-10 text-center">
+                    <div className="mb-3 text-white/40">
+                      <Clock className="mx-auto h-12 w-12" />
                     </div>
-                    <p className="text-gray-500 text-sm">No recent activity</p>
-                    <p className="text-gray-400 text-xs mt-1">Activity will appear here as users claim POAPs</p>
+                    <p className="text-sm text-white/80">No recent activity</p>
+                    <p className="mt-1 text-xs text-white/60">
+                      Activity will appear here as users claim POAPs
+                    </p>
                   </div>
                 )}
 
-                <div className="text-center pt-4">
+                <div className="pt-4 text-center">
                   <Link href="/dashboard/analytics">
-                    <Button variant="outline" size="sm">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="rounded-xl border-white/20 bg-white/5 text-white hover:bg-white/10"
+                    >
                       View All Activity
                       <ExternalLink className="ml-2 h-3 w-3" />
                     </Button>
@@ -121,36 +136,46 @@ export default function DashboardPage() {
           </Card>
         </div>
 
-        {/* Quick Actions & Info */}
+        {/* Right column */}
         <div className="space-y-6">
           {/* Quick Actions */}
           <Card>
             <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
-              <CardDescription>
-                Common tasks and shortcuts
-              </CardDescription>
+              <CardTitle className="text-white">Quick Actions</CardTitle>
+              <CardDescription className="text-white/70">Common tasks and shortcuts</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               <Link href="/dashboard/campaigns">
-                <Button variant="outline" className="w-full justify-start">
+                <Button
+                  variant="outline"
+                  className="w-full justify-start rounded-xl border-white/20 bg-white/5 text-white hover:bg-white/10"
+                >
                   <Plus className="mr-2 h-4 w-4" />
                   Create Campaign
                 </Button>
               </Link>
               <Link href="/dashboard/api-keys">
-                <Button variant="outline" className="w-full justify-start">
+                <Button
+                  variant="outline"
+                  className="w-full justify-start rounded-xl border-white/20 bg-white/5 text-white hover:bg-white/10"
+                >
                   <Zap className="mr-2 h-4 w-4" />
                   Generate API Key
                 </Button>
               </Link>
               <Link href="/dashboard/analytics">
-                <Button variant="outline" className="w-full justify-start">
+                <Button
+                  variant="outline"
+                  className="w-full justify-start rounded-xl border-white/20 bg-white/5 text-white hover:bg-white/10"
+                >
                   <TrendingUp className="mr-2 h-4 w-4" />
                   View Analytics
                 </Button>
               </Link>
-              <Button variant="outline" className="w-full justify-start">
+              <Button
+                variant="outline"
+                className="w-full justify-start rounded-xl border-white/20 bg-white/5 text-white hover:bg-white/10"
+              >
                 <ExternalLink className="mr-2 h-4 w-4" />
                 API Documentation
               </Button>
@@ -160,61 +185,66 @@ export default function DashboardPage() {
           {/* System Status */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center">
-                <Shield className="mr-2 h-5 w-5 text-green-600" />
+              <CardTitle className="flex items-center text-white">
+                <Shield className="mr-2 h-5 w-5 text-emerald-400" />
                 System Status
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Solana Network</span>
+              <Row label="Solana Network">
                 <Badge variant="success">Operational</Badge>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">POAP Minting</span>
+              </Row>
+              <Row label="POAP Minting">
                 <Badge variant="success">Operational</Badge>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">API Services</span>
+              </Row>
+              <Row label="API Services">
                 <Badge variant="success">Operational</Badge>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Relayer Balance</span>
-                <Badge variant={stats.relayerBalance > 0.1 ? "success" : "warning"}>
-                  {stats.relayerBalance > 0.1 ? "Healthy" : "Low"}
+              </Row>
+              <Row label="Relayer Balance">
+                <Badge variant={stats.relayerBalance > 0.1 ? 'success' : 'warning'}>
+                  {stats.relayerBalance > 0.1 ? 'Healthy' : 'Low'}
                 </Badge>
-              </div>
+              </Row>
             </CardContent>
           </Card>
 
-          {/* Getting Started */}
-          <Card className="bg-gradient-to-br from-indigo-50 to-purple-50 border-indigo-200">
+          {/* Getting Started (glass + acento) */}
+          <Card className="relative overflow-hidden">
+            <div className="pointer-events-none absolute inset-0 opacity-[.35]"
+              style={{
+                background:
+                  'radial-gradient(600px 200px at 0% 0%, rgba(99,102,241,.7), transparent),' +
+                  'radial-gradient(400px 200px at 100% 0%, rgba(168,85,247,.7), transparent)',
+              }}
+            />
             <CardHeader>
-              <CardTitle className="text-indigo-900">Getting Started</CardTitle>
-              <CardDescription className="text-indigo-700">
-                New to Infrastructure?
-              </CardDescription>
+              <CardTitle className="text-white">Getting Started</CardTitle>
+              <CardDescription className="text-white/80">New to Infrastructure?</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2 text-sm text-indigo-800">
-                <div className="flex items-center">
-                  <div className="h-2 w-2 bg-indigo-400 rounded-full mr-2"></div>
+              <ul className="space-y-2 text-sm text-white/90">
+                <li className="flex items-center">
+                  <span className="mr-2 inline-block h-2 w-2 rounded-full bg-indigo-300" />
                   Create your first campaign
-                </div>
-                <div className="flex items-center">
-                  <div className="h-2 w-2 bg-indigo-400 rounded-full mr-2"></div>
+                </li>
+                <li className="flex items-center">
+                  <span className="mr-2 inline-block h-2 w-2 rounded-full bg-indigo-300" />
                   Generate an API key
-                </div>
-                <div className="flex items-center">
-                  <div className="h-2 w-2 bg-indigo-400 rounded-full mr-2"></div>
+                </li>
+                <li className="flex items-center">
+                  <span className="mr-2 inline-block h-2 w-2 rounded-full bg-indigo-300" />
                   Test POAP claiming
-                </div>
-                <div className="flex items-center">
-                  <div className="h-2 w-2 bg-indigo-400 rounded-full mr-2"></div>
+                </li>
+                <li className="flex items-center">
+                  <span className="mr-2 inline-block h-2 w-2 rounded-full bg-indigo-300" />
                   Embed on your website
-                </div>
-              </div>
-              <Button variant="secondary" size="sm" className="w-full mt-4">
+                </li>
+              </ul>
+              <Button
+                variant="secondary"
+                size="sm"
+                className="mt-4 w-full rounded-xl border-white/15 bg-white/10 text-white hover:bg-white/15"
+              >
                 View Guide
                 <ExternalLink className="ml-2 h-3 w-3" />
               </Button>
@@ -222,6 +252,16 @@ export default function DashboardPage() {
           </Card>
         </div>
       </div>
+    </div>
+  )
+}
+
+/* pequeño helper de fila para System Status */
+function Row({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between">
+      <span className="text-sm text-white/80">{label}</span>
+      {children}
     </div>
   )
 }
