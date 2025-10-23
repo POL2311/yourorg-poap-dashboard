@@ -154,7 +154,7 @@ class ApiClient {
     return response.data
   }
 
-  async getUserClaimStats(): Promise<ApiResponse<{
+  async getUserClaimStats(p0: { signal: any; }): Promise<ApiResponse<{
     userId: string
     totalClaims: number
     monthlyStats: Array<{ month: string; count: number }>
@@ -197,7 +197,7 @@ class ApiClient {
     return response.data
   }
 
-  async getUserClaimStatsByWallet(userPublicKey: string): Promise<ApiResponse<{
+  async getUserClaimStatsByWallet(userPublicKey: string, p0: { signal: any; }): Promise<ApiResponse<{
     userPublicKey: string
     totalClaims: number
     monthlyStats: Array<{ month: string; count: number }>

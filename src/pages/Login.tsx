@@ -62,7 +62,7 @@ export const LoginPage: React.FC = () => {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold">
-            {isRegistering ? '🎪 Join Gasless infrastructure' : '🏅 POAP Dashboard'}
+            {isRegistering ? '🎪 Join SoPoap' : '🏅 POAP Dashboard'}
           </CardTitle>
           <p className="text-muted-foreground">
             {isRegistering 

@@ -51,7 +51,7 @@ export default function CampaignsPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Campaigns</h1>
+            <h1 className="text-3xl font-bold text-white">Campaigns</h1>
             <p className="text-gray-600 mt-1">Manage your POAP campaigns</p>
           </div>
         </div>
@@ -69,8 +69,8 @@ export default function CampaignsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Campaigns</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-3xl font-bold text-white/80">Campaigns</h1>
+          <p className="text-white/80 mt-1">
             Manage your POAP campaigns and track their performance
           </p>
         </div>
@@ -81,7 +81,7 @@ export default function CampaignsPage() {
               New Campaign
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="glass-strong border modal-glass ">
             <DialogHeader>
               <DialogTitle>Create New Campaign</DialogTitle>
               <DialogDescription>Set up a new POAP campaign for your event</DialogDescription>
@@ -141,7 +141,7 @@ export default function CampaignsPage() {
         <CardHeader>
           <div className="flex items-center space-x-4">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Search className="absolute left-3 top-3 h-4 w-4 text-white" />
               <Input
                 placeholder="Search campaigns..."
                 value={search}
@@ -154,7 +154,7 @@ export default function CampaignsPage() {
         <CardContent>
           {campaigns.length === 0 ? (
             <div className="text-center py-12">
-              <Calendar className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+              <Calendar className="mx-auto h-12 w-12 text-white mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">No campaigns yet</h3>
               <p className="text-gray-600 mb-6">Create your first POAP campaign to get started</p>
               <Button onClick={() => setIsCreateDialogOpen(true)}>
@@ -163,14 +163,14 @@ export default function CampaignsPage() {
               </Button>
             </div>
           ) : (
-            <Table>
+            <Table className="text-slate-800">
               <TableHeader>
-                <TableRow>
-                  <TableHead>Campaign</TableHead>
-                  <TableHead>Event Date</TableHead>
-                  <TableHead>Claims</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Actions</TableHead>
+                <TableRow className="bg-slate-50/80">
+                  <TableHead className="text-slate-500">Campaign</TableHead>
+                  <TableHead className="text-slate-500">Event Date</TableHead>
+                  <TableHead className="text-slate-500">Claims</TableHead>
+                  <TableHead className="text-slate-500">Status</TableHead>
+                  <TableHead className="text-slate-500">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -186,12 +186,12 @@ export default function CampaignsPage() {
                         <div>
                           <div className="font-medium">{campaign.name}</div>
                           {campaign.description && (
-                            <div className="text-sm text-gray-500 truncate max-w-xs">
+                            <div className="text-sm text-white truncate max-w-xs">
                               {campaign.description}
                             </div>
                           )}
                           {campaign.location && (
-                            <div className="text-xs text-gray-400">📍 {campaign.location}</div>
+                            <div className="text-xs text-white">📍 {campaign.location}</div>
                           )}
                         </div>
                       </TableCell>

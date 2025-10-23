@@ -8,15 +8,26 @@ import toast from 'react-hot-toast'
 // =======================
 // 📡 API CLIENT
 // =======================
-const API_BASE_URL = 'http://localhost:3000'
+const API_BASE_URL =
+  (process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000').replace(/\/$/, '')
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
   headers: { 'Content-Type': 'application/json' },
 })
 
+function getAuthToken() {
+  if (typeof window === 'undefined') return ''
+  return (
+    localStorage.getItem('auth-token') ||
+    localStorage.getItem('token') ||
+    localStorage.getItem('jwt') ||
+    ''
+  )
+}
+
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('auth-token')
+  const token = getAuthToken()
   if (token) config.headers.Authorization = `Bearer ${token}`
   return config
 })
@@ -24,9 +35,19 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (res) => res,
   (error) => {
-    if (error.response?.status === 401) {
+    if (error?.response?.status === 401) {
+      // 👇 no patear desde páginas públicas
+      const here = typeof window !== 'undefined' ? window.location.pathname : ''
+      const isPublic =
+        here.startsWith('/market') ||
+        here === '/' ||
+        here.startsWith('/claim') ||
+        here.startsWith('/explore')
+
       localStorage.removeItem('auth-token')
-      window.location.replace('/login')
+      if (!isPublic && typeof window !== 'undefined') {
+        window.location.replace('/login')
+      }
     }
     return Promise.reject(error)
   }
@@ -108,9 +129,12 @@ export function useHealthCheck() {
 }
 
 // =======================
-// 🪙 CAMPAIGNS
+// 🪙 CAMPAIGNS (privadas del organizer)
 // =======================
 export function useCampaigns() {
+  const enabled =
+    typeof window !== 'undefined' && !!localStorage.getItem('auth-token')
+
   return useQuery({
     queryKey: ['campaigns'],
     queryFn: async (): Promise<Campaign[]> => {
@@ -124,41 +148,62 @@ export function useCampaigns() {
         maxSupply: c.maxSupply ?? c.maxClaims ?? null,
       }))
     },
+    enabled, // solo si hay token
   })
 }
 
 export function useCampaignAnalytics(campaignId: string) {
+  const enabled =
+    !!campaignId &&
+    (typeof window === 'undefined' || !!localStorage.getItem('auth-token'))
+
   return useQuery({
     queryKey: ['campaign-analytics', campaignId],
     queryFn: async (): Promise<CampaignAnalytics> => {
       const { data } = await api.get(`/api/campaigns/${campaignId}/analytics`)
       return data.data
     },
-    enabled: !!campaignId,
+    enabled,
   })
 }
 
 export function useCampaignClaims(campaignId: string, page = 1, limit = 50) {
+  const enabled =
+    !!campaignId &&
+    (typeof window === 'undefined' || !!localStorage.getItem('auth-token'))
+
   return useQuery({
     queryKey: ['campaign-claims', campaignId, page, limit],
     queryFn: async () => {
       const { data } = await api.get(`/api/campaigns/${campaignId}/claims`, { params: { page, limit } })
       return data.data
     },
-    enabled: !!campaignId,
+    enabled,
   })
 }
 
 // =======================
-// 📊 AGGREGATED ANALYTICS
+// 📊 AGGREGATED ANALYTICS (privado)
 // =======================
 export function useAnalytics() {
   const { data: campaigns } = useCampaigns()
+  const enabled =
+    !!campaigns &&
+    (typeof window === 'undefined' || !!localStorage.getItem('auth-token'))
+
   return useQuery({
     queryKey: ['analytics', campaigns?.length],
     queryFn: async () => {
       if (!campaigns?.length) {
-        return { totalClaims: 0, successRate: 0, peakTime: 'N/A', topLocation: 'N/A', avgClaimTime: 'N/A', chartData: [], recentClaims: [] }
+        return {
+          totalClaims: 0,
+          successRate: 0,
+          peakTime: 'N/A',
+          topLocation: 'N/A',
+          avgClaimTime: 'N/A',
+          chartData: [],
+          recentClaims: [],
+        }
       }
 
       const MAX_CAMPAIGNS = 10
@@ -178,23 +223,6 @@ export function useAnalytics() {
         return acc
       }, []).sort((a, b) => a.date.localeCompare(b.date)).slice(-7)
 
-      const claimsPromises = campaigns.slice(0, 3).map(c =>
-        api.get(`/api/campaigns/${c.id}/claims`, { params: { limit: 5 } })
-          .then(r => r.data.data.claims.map((cl: Claim) => ({
-            id: cl.id,
-            campaignName: c.name,
-            userWallet: cl.userPublicKey,
-            claimedAt: cl.claimedAt,
-            transactionSignature: cl.transactionHash || 'N/A',
-          })))
-          .catch(() => [])
-      )
-
-      const claimsResults = await Promise.all(claimsPromises)
-      const recentClaims = claimsResults.flat()
-        .sort((a, b) => new Date(b.claimedAt).getTime() - new Date(a.claimedAt).getTime())
-        .slice(0, 10)
-
       return {
         totalClaims,
         successRate: totalClaims > 0 ? 98.5 : 0,
@@ -202,11 +230,11 @@ export function useAnalytics() {
         topLocation: campaigns[0]?.location || 'Virtual',
         avgClaimTime: '2.3 seconds',
         chartData,
-        recentClaims,
+        recentClaims: [],
         totalGasCostSOL: totalGasCost / 1e9,
       }
     },
-    enabled: !!campaigns,
+    enabled,
   })
 }
 
@@ -255,7 +283,8 @@ export function useDeleteCampaign() {
 // =======================
 export function useLogin() {
   return useMutation({
-    mutationFn: (credentials: { email: string; password: string }) => api.post('/api/auth/login', credentials),
+    mutationFn: (credentials: { email: string; password: string }) =>
+      api.post('/api/auth/login', credentials),
     onSuccess: () => toast.success('Logged in successfully!'),
     onError: (e) => handleApiError(e, 'Login failed'),
   })
@@ -271,12 +300,50 @@ export function useRegister() {
 }
 
 export function useProfile() {
+  const enabled =
+    typeof window !== 'undefined' && !!localStorage.getItem('auth-token')
+
   return useQuery({
     queryKey: ['profile'],
     queryFn: async () => {
       const { data } = await api.get('/api/auth/profile')
       return data.data
     },
-    enabled: !!localStorage.getItem('auth-token'),
+    enabled,
+  })
+}
+
+// =======================
+// 🌐 PUBLIC CAMPAIGNS (Market)
+// =======================
+export type PublicCampaign = {
+  id: string
+  name: string
+  description?: string
+  eventDate: string
+  location?: string
+  imageUrl?: string
+  externalUrl?: string
+  maxClaims?: number | null
+  isActive: boolean
+  createdAt: string
+  organizer: { id: string; name: string; company?: string | null }
+  totalClaims: number
+  claimsRemaining: number | null
+}
+
+export function useMarketCampaigns(params?: {
+  search?: string
+  sort?: 'recent' | 'popular' | 'upcoming'
+  page?: number
+  limit?: number
+  organizerId?: string
+}) {
+  return useQuery({
+    queryKey: ['market-campaigns', params],
+    queryFn: async (): Promise<PublicCampaign[]> => {
+      const { data } = await api.get('/api/public/campaigns', { params })
+      return data.data.campaigns as PublicCampaign[]
+    },
   })
 }

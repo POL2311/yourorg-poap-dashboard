@@ -1,31 +1,44 @@
 'use client'
 
+import { useMemo } from 'react'
 import { useDashboardStats, useRecentActivity } from '@/hooks/use-api'
 import { StatsCards } from '@/components/dashboard/stats-cards'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import {
-  Plus,
-  TrendingUp,
-  ExternalLink,
-  Zap,
-  Shield,
-  Clock,
-} from 'lucide-react'
+import { Plus, TrendingUp, ExternalLink, Zap, Shield, Clock } from 'lucide-react'
 import Link from 'next/link'
+
+/** Ajusta este tipo si tu API devuelve más campos */
+type Activity = {
+  id: string
+  type: 'claim' | 'campaign' | string
+  title: string
+  description?: string
+  icon?: string
+  badge?: string
+  badgeVariant?: 'success' | 'default' | 'secondary' | 'warning'
+}
 
 export default function DashboardPage() {
   const stats = useDashboardStats()
   const { data: recentActivityData, isLoading: isLoadingActivity } = useRecentActivity(5)
+
+  // Normalizamos data para evitar "possibly undefined" y duplicar ?. por todo el JSX
+  const activities: Activity[] = useMemo(
+    () => recentActivityData?.data?.activities ?? [],
+    [recentActivityData]
+  )
+
+  const relayerBalance = stats?.relayerBalance ?? 0
 
   return (
     <div className="space-y-6">
       {/* Top / Welcome */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-white">Dashboard</h1>
-          <p className="mt-1 text-white/70">
+          <h1 className="text-3xl font-bold on-glass-title">Dashboard</h1>
+          <p className="mt-1 on-glass-muted">
             Welcome back! Here&apos;s what&apos;s happening with your POAP campaigns.
           </p>
         </div>
@@ -58,7 +71,7 @@ export default function DashboardPage() {
             <CardContent>
               <div className="space-y-4">
                 {isLoadingActivity ? (
-                  // Skeleton (oscuro)
+                  // Skeleton
                   <div className="space-y-3">
                     {[1, 2, 3].map((i) => (
                       <div
@@ -74,9 +87,9 @@ export default function DashboardPage() {
                       </div>
                     ))}
                   </div>
-                ) : recentActivityData?.data?.activities?.length > 0 ? (
+                ) : activities.length > 0 ? (
                   // Items
-                  recentActivityData.data.activities.map((activity: any) => (
+                  activities.map((activity: Activity) => (
                     <div
                       key={activity.id}
                       className="flex items-center space-x-4 rounded-xl border border-white/10 bg-white/5 p-3 backdrop-blur"
@@ -92,17 +105,22 @@ export default function DashboardPage() {
                               : 'bg-purple-500/20',
                           ].join(' ')}
                         >
-                          <span className="text-white/90 text-lg">{activity.icon}</span>
+                          <span className="text-white/90 text-lg">{activity.icon ?? '•'}</span>
                         </div>
                       </div>
 
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium text-white">{activity.title}</p>
-                        <p className="truncate text-sm text-white/70">{activity.description}</p>
+                        <p className="truncate text-sm font-medium on-glass-text">{activity.title}</p>
+                        {activity.description && (
+                          <p className="truncate text-sm on-glass-text">{activity.description}</p>
+                        )}
                       </div>
 
-                      <Badge variant={activity.badgeVariant || 'default'} className="whitespace-nowrap">
-                        {activity.badge}
+                      <Badge
+                        variant={activity.badgeVariant ?? 'default'}
+                        className="whitespace-nowrap"
+                      >
+                        {activity.badge ?? '—'}
                       </Badge>
                     </div>
                   ))
@@ -201,8 +219,8 @@ export default function DashboardPage() {
                 <Badge variant="success">Operational</Badge>
               </Row>
               <Row label="Relayer Balance">
-                <Badge variant={stats.relayerBalance > 0.1 ? 'success' : 'warning'}>
-                  {stats.relayerBalance > 0.1 ? 'Healthy' : 'Low'}
+                <Badge variant={relayerBalance > 0.1 ? 'success' : 'warning'}>
+                  {relayerBalance > 0.1 ? 'Healthy' : 'Low'}
                 </Badge>
               </Row>
             </CardContent>
@@ -210,7 +228,8 @@ export default function DashboardPage() {
 
           {/* Getting Started (glass + acento) */}
           <Card className="relative overflow-hidden">
-            <div className="pointer-events-none absolute inset-0 opacity-[.35]"
+            <div
+              className="pointer-events-none absolute inset-0 opacity-[.35]"
               style={{
                 background:
                   'radial-gradient(600px 200px at 0% 0%, rgba(99,102,241,.7), transparent),' +
@@ -256,7 +275,7 @@ export default function DashboardPage() {
   )
 }
 
-/* pequeño helper de fila para System Status */
+/* Helper para System Status */
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between">

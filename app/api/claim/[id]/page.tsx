@@ -301,7 +301,7 @@ export default function ClaimPage({ params }: ClaimPageProps) {
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <Zap className="h-8 w-8 text-indigo-600" />
-            <span className="text-xl font-bold text-gray-900">POAP Claim</span>
+            <span className="text-xl font-bold text-white">POAP Claim</span>
           </div>
           <div className="flex items-center space-x-4">
             <Button variant="ghost" onClick={copyClaimUrl}>

@@ -108,15 +108,15 @@ export default function AnalyticsPage() {
   }))
 
   const statusDistribution = [
-    { name: 'Active', value: activeCampaigns, color: '#10b981' },
-    { name: 'Inactive', value: campaigns.length - activeCampaigns, color: '#6b7280' },
+    { name: 'Active', value: activeCampaigns, color: '#e7f4f0ff' },
+    { name: 'Inactive', value: campaigns.length - activeCampaigns, color: '#000000ff' },
   ]
 
   if (campaignsLoading || relayerLoading || loadingDaily || loadingMonthly) {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Analytics</h1>
+          <h1 className="text-3xl font-bold text-white">Analytics</h1>
           <p className="text-gray-600 mt-1">Loading analytics data...</p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -132,8 +132,8 @@ export default function AnalyticsPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Analytics</h1>
-        <p className="text-gray-600 mt-1">
+        <h1 className="text-3xl font-bold text-white/80">Analytics</h1>
+        <p className="text-white/80 mt-1">
           Comprehensive insights into your POAP campaigns and performance
         </p>
       </div>
@@ -228,8 +228,8 @@ export default function AnalyticsPage() {
                       type="monotone" 
                       dataKey="claims" 
                       stackId="1"
-                      stroke="#6366f1" 
-                      fill="#6366f1" 
+                      stroke="#bbbcfcff" 
+                      fill="#1a1a49ff" 
                       fillOpacity={0.6}
                     />
                   </AreaChart>
@@ -296,8 +296,8 @@ export default function AnalyticsPage() {
                   <XAxis dataKey="name" />
                   <YAxis />
                   <Tooltip />
-                  <Bar dataKey="claims" fill="#6366f1" />
-                  <Bar dataKey="maxClaims" fill="#e5e7eb" />
+                  <Bar dataKey="claims" fill="#070707ff" />
+                  <Bar dataKey="maxClaims" fill="#181f2dff" />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
@@ -323,9 +323,9 @@ export default function AnalyticsPage() {
                   <Line 
                     type="monotone" 
                     dataKey="claims" 
-                    stroke="#6366f1" 
+                    stroke="#000000ff" 
                     strokeWidth={2}
-                    dot={{ fill: '#6366f1' }}
+                    dot={{ fill: '#1a1a1aff' }}
                   />
                 </LineChart>
               </ResponsiveContainer>

@@ -200,7 +200,6 @@ export default function CampaignDetailPage({ params }: CampaignDetailPageProps) 
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
           <TabsTrigger value="claims">Claims</TabsTrigger>
           <TabsTrigger value="integration">Integration</TabsTrigger>
-          <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
 
         <TabsContent value="analytics" className="space-y-6">
