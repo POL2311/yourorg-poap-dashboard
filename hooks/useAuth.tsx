@@ -1,3 +1,5 @@
+'use client'
+
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react'
 import { useWallet } from '@solana/wallet-adapter-react'
 import toast from 'react-hot-toast'
