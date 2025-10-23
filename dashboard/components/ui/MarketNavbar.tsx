@@ -11,7 +11,7 @@ const nav: NavItem[] = [{ href: '/market', label: 'Gallery' }]
 
 const cx = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).join(' ')
 
-const LiquidNavbar: FC = () => {
+const MarketNavbar: FC = () => {
   // ✅ evita null en tipos antiguos
   const pathname = usePathname() ?? ''
 
@@ -99,7 +99,7 @@ const LiquidNavbar: FC = () => {
               </Link>
 
               <Link
-                href="/login"
+                href="/user"
                 className={cx(
                   'relative rounded-full px-5 py-2.5 text-[12px] font-semibold text-white',
                   'bg-neutral-900 ring-1 ring-black/10 transition will-change-transform',
@@ -107,19 +107,7 @@ const LiquidNavbar: FC = () => {
                   'hover:bg-neutral-800 active:translate-y-[0.5px]'
                 )}
               >
-                Log in
-                <span className="pointer-events-none absolute inset-0 rounded-full [mask-image:linear-gradient(to_bottom,white,transparent_60%)] bg-white/15" />
-              </Link>
-              <Link
-                href="/register"
-                className={cx(
-                  'relative rounded-full px-5 py-2.5 text-[12px] font-semibold text-white',
-                  'bg-neutral-900 ring-1 ring-black/10 transition will-change-transform',
-                  'shadow-[inset_0_1px_0_rgba(255,255,255,0.10),0_8px_24px_rgba(0,0,0,0.35)]',
-                  'hover:bg-neutral-800 active:translate-y-[0.5px]'
-                )}
-              >
-                Sign up
+                Profile
                 <span className="pointer-events-none absolute inset-0 rounded-full [mask-image:linear-gradient(to_bottom,white,transparent_60%)] bg-white/15" />
               </Link>
             </div>
@@ -132,4 +120,4 @@ const LiquidNavbar: FC = () => {
   )
 }
 
-export default LiquidNavbar
+export default MarketNavbar

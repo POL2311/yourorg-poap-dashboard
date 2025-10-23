@@ -1,371 +1,356 @@
+// app/claim/[id]/page.tsx
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useWallet } from '@solana/wallet-adapter-react'
-import { WalletMultiButton } from '@solana/wallet-adapter-react-ui'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Separator } from '@/components/ui/separator'
-import { Calendar, MapPin, Users, ExternalLink, CheckCircle, AlertTriangle, Loader2, Copy, Zap } from 'lucide-react'
-import { formatDate, formatNumber } from '@/lib/utils'
-import { apiClient } from '@/lib/api'
-import type { PublicCampaign } from '@/lib/types'   // 👈 usa PublicCampaign aquí
-import { toast } from 'react-hot-toast'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
+import { WalletMultiButton } from '@solana/wallet-adapter-react-ui'
+import { useWallet } from '@solana/wallet-adapter-react'
+import {
+  Zap, Copy, Calendar, MapPin, Users, Globe, CheckCircle2,
+  Lock, Check, QrCode, ExternalLink, Loader2,
+} from 'lucide-react'
+import { toast } from 'react-hot-toast'
+import { apiClient } from '@/lib/api'
+import type { PublicCampaign } from '@/lib/types'
+import GlassSidebar from '@/components/layout/GlassSidebar'
+import { Button } from '@/components/ui/button'
 
-interface ClaimPageProps {
-  params: { id: string }
+/* ---------- helpers UI ---------- */
+function StatPill({
+  icon,
+  label,
+}: {
+  icon: React.ReactNode
+  label: React.ReactNode
+}) {
+  return (
+    <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-sm text-white/90 backdrop-blur">
+      <span className="opacity-90">{icon}</span>
+      <span>{label}</span>
+    </span>
+  )
 }
 
-interface ClaimState {
-  status: 'idle' | 'loading' | 'success' | 'error'
-  error?: string
-  result?: {
-    message: string
-    nft: { mint: string; transactionSignature: string }
-    explorerUrl: string
-  }
+function KChip({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full border border-white/20 bg-white/10 px-2 py-0.5 text-xs text-white/80 backdrop-blur">
+      {children}
+    </span>
+  )
 }
 
-export default function ClaimPage({ params }: ClaimPageProps) {
+function Progress({ value, max }: { value: number; max: number }) {
+  const pct = Math.max(0, Math.min(100, (value / Math.max(1, max)) * 100))
+  return (
+    <div className="h-2 w-full overflow-hidden rounded-full bg-white/10">
+      <div className="h-full rounded-full bg-emerald-400/80" style={{ width: `${pct}%` }} />
+    </div>
+  )
+}
+
+/* ---------- tipos ---------- */
+interface PageProps { params: { id: string } }
+type ClaimState =
+  | { status: 'idle' | 'loading' }
+  | { status: 'success'; mint: string; explorerUrl: string; message: string }
+  | { status: 'error'; error: string }
+
+/* ---------- página ---------- */
+export default function ClaimPage({ params }: PageProps) {
   const { publicKey, connected } = useWallet()
-  const [campaign, setCampaign] = useState<PublicCampaign | null>(null)  // ✅ AHORA DENTRO
+  const [campaign, setCampaign] = useState<PublicCampaign | null>(null)
   const [loading, setLoading] = useState(true)
-  const [secretCode, setSecretCode] = useState('')
-  const [claimState, setClaimState] = useState<ClaimState>({ status: 'idle' })
+  const [secret, setSecret] = useState('')
+  const [state, setState] = useState<ClaimState>({ status: 'idle' })
 
   useEffect(() => {
     (async () => {
       try {
-        const response = await apiClient.getPublicCampaign(params.id)
-        if (response.success && response.data) setCampaign(response.data)
-        else setClaimState({ status: 'error', error: 'Campaign not found or inactive' })
+        const r = await apiClient.getPublicCampaign(params.id)
+        if (r.success && r.data) setCampaign(r.data)
+        else setState({ status: 'error', error: 'Campaña no encontrada o inactiva.' })
       } catch {
-        setClaimState({ status: 'error', error: 'Failed to load campaign' })
+        setState({ status: 'error', error: 'No se pudo cargar la campaña.' })
       } finally {
         setLoading(false)
       }
     })()
   }, [params.id])
 
+  const totalClaims = campaign?._count?.claims ?? 0
+  const maxClaims = campaign?.maxClaims ?? 0
+  const remaining = useMemo(() => {
+    return Math.max(0, (campaign?.maxClaims ?? 0) - (campaign?._count?.claims ?? 0))
+  }, [campaign])
 
-  const handleClaim = async () => {
-    if (!connected || !publicKey) {
-      toast.error('Please connect your wallet first')
-      return
-    }
-
-    if (campaign?.secretCode && !secretCode) {
-      toast.error('Please enter the secret code')
-      return
-    }
-
-    setClaimState({ status: 'loading' })
-
-    try {
-      // Use the Next.js API route to proxy the claim
-      const response = await fetch(`/api/claim/${params.id}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userPublicKey: publicKey.toString(),
-          secretCode: secretCode || undefined,
-        }),
-      })
-
-      const data = await response.json()
-
-      if (data.success) {
-        setClaimState({
-          status: 'success',
-          result: {
-            message: data.data.message,
-            nft: data.data.nft,
-            explorerUrl: data.data.explorerUrl,
-          }
-        })
-        toast.success('POAP claimed successfully!')
-      } else {
-        setClaimState({
-          status: 'error',
-          error: data.error || 'Failed to claim POAP'
-        })
-        toast.error(data.error || 'Failed to claim POAP')
-      }
-    } catch (error) {
-      setClaimState({
-        status: 'error',
-        error: 'Network error. Please try again.'
-      })
-      toast.error('Network error. Please try again.')
-    }
+  const copyLink = () => {
+    navigator.clipboard.writeText(window.location.href)
+    toast.success('Enlace copiado')
   }
 
-  const copyClaimUrl = () => {
-    navigator.clipboard.writeText(window.location.href)
-    toast.success('Claim URL copied to clipboard!')
+  const claim = async () => {
+    if (!connected || !publicKey) {
+      toast.error('Conecta tu wallet')
+      return
+    }
+    if (campaign?.secretCode && !secret.trim()) {
+      toast.error('Ingresa el código secreto')
+      return
+    }
+    setState({ status: 'loading' })
+    try {
+      const res = await fetch(`/api/claim/${params.id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userPublicKey: publicKey.toString(), secretCode: secret || undefined }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        setState({
+          status: 'success',
+          mint: data.data.nft.mint,
+          message: data.data.message,
+          explorerUrl: data.data.explorerUrl,
+        })
+        toast.success('¡POAP reclamado!')
+      } else {
+        setState({ status: 'error', error: data.error || 'Error al reclamar' })
+        toast.error(data.error || 'Error al reclamar')
+      }
+    } catch {
+      setState({ status: 'error', error: 'Error de red. Intenta de nuevo.' })
+      toast.error('Error de red. Intenta de nuevo.')
+    }
   }
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading campaign...</p>
+      <div className="grid min-h-[100dvh] place-items-center bg-slate-950">
+        <div className="flex items-center gap-3 text-white/80">
+          <Loader2 className="h-5 w-5 animate-spin" />
+          Cargando campaña…
         </div>
       </div>
     )
   }
 
-  if (claimState.status === 'error' && !campaign) {
+  if (!campaign) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <AlertTriangle className="mx-auto h-12 w-12 text-red-500 mb-4" />
-            <CardTitle>Campaign Not Found</CardTitle>
-            <CardDescription>
-              The POAP campaign you're looking for doesn't exist or is no longer active.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="text-center">
-            <p className="text-sm text-gray-600 mb-4">
-              {claimState.error}
-            </p>
-            <Link href="/">
-              <Button>Go Home</Button>
+      <div className="grid min-h-[100dvh] place-items-center bg-slate-950">
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-6 text-center text-white/80">
+          No encontramos esta campaña.
+          <div className="mt-4">
+            <Link href="/" className="rounded-full border border-white/15 bg-white/10 px-4 py-2 hover:bg-white/15">
+              Volver al inicio
             </Link>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     )
   }
-
-  if (!campaign) return null
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50">
-      {/* Header */}
-      <header className="border-b bg-white/80 backdrop-blur-sm">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <Zap className="h-8 w-8 text-indigo-600" />
-            <span className="text-xl font-bold text-gray-900">POAP Claim</span>
-          </div>
-          <div className="flex items-center space-x-4">
-            <Button variant="ghost" onClick={copyClaimUrl}>
-              <Copy className="mr-2 h-4 w-4" />
-              Copy Link
-            </Button>
-            <WalletMultiButton />
-          </div>
-        </div>
-      </header>
+    <div className="min-h-[100dvh] bg-slate-950 text-white">
+      {/* glow de fondo */}
+      <div className="pointer-events-none fixed inset-0 -z-10">
+        <div className="absolute inset-0 bg-[radial-gradient(900px_500px_at_0%_0%,#6ee7b7_0%,transparent_60%),radial-gradient(900px_600px_at_100%_20%,#a78bfa_0%,transparent_55%)] opacity-[0.18]" />
+      </div>
 
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-12">
-        <div className="max-w-2xl mx-auto">
-          {/* Campaign Info */}
-          <Card className="mb-8">
-            <CardHeader className="text-center">
-              {campaign.imageUrl && (
-                <div className="mx-auto mb-4">
+      <div className="mx-auto flex max-w-7xl gap-6 px-6 py-8">
+        {/* Sidebar igual al dashboard */}
+        <GlassSidebar />
+
+        {/* Main */}
+        <main className="flex-1 space-y-6">
+          {/* Botones superiores a la derecha */}
+          <div className="flex items-center justify-end">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={copyLink}
+                className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-sm text-white/90 hover:bg-white/15"
+              >
+                <Copy className="mr-2 inline h-4 w-4" />
+                Copiar enlace
+              </button>
+              <WalletMultiButton />
+            </div>
+          </div>
+
+          {/* ===== HERO NUEVO ===== */}
+          <section className="rounded-3xl border border-white/10 bg-white/10/opacity-5 bg-white/5 p-6 backdrop-blur-xl">
+            <div className="flex flex-col items-start gap-6 md:flex-row">
+              {/* Imagen */}
+              <div className="flex-shrink-0">
+                {campaign.imageUrl ? (
                   <img
                     src={campaign.imageUrl}
                     alt={campaign.name}
-                    className="w-24 h-24 rounded-full object-cover mx-auto"
+                    className="h-28 w-28 rounded-2xl border border-white/15 object-cover shadow-lg shadow-black/20"
+                  />
+                ) : (
+                  <div className="grid h-28 w-28 place-items-center rounded-2xl border border-white/15 bg-white/10">
+                    <QrCode className="h-7 w-7" />
+                  </div>
+                )}
+              </div>
+
+              {/* Título + descripción + link */}
+              <div className="flex-1 space-y-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h1 className="text-2xl font-semibold leading-tight">{campaign.name}</h1>
+                  <KChip>
+                    {campaign.isActive ? (
+                      <>
+                        <Check className="h-3 w-3" /> Activa
+                      </>
+                    ) : (
+                      <>
+                        <Lock className="h-3 w-3" /> Inactiva
+                      </>
+                    )}
+                  </KChip>
+                </div>
+
+                {campaign.description && (
+                  <p className="max-w-3xl text-sm text-white/75">{campaign.description}</p>
+                )}
+
+                {campaign.externalUrl && (
+                  <a
+                    href={campaign.externalUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/8 px-4 py-2 text-sm transition hover:bg-white/12"
+                  >
+                    <Globe className="h-4 w-4" />
+                    Visitar sitio del evento
+                    <ExternalLink className="h-3.5 w-3.5 opacity-70" />
+                  </a>
+                )}
+              </div>
+            </div>
+
+            {/* Stats debajo del hero */}
+            <div className="mt-6 flex flex-wrap items-center gap-3">
+              <StatPill
+                icon={<Calendar className="h-4 w-4" />}
+                label={new Date(campaign.eventDate).toLocaleDateString()}
+              />
+              <StatPill icon={<MapPin className="h-4 w-4" />} label={campaign.location || '—'} />
+
+              {maxClaims > 0 ? (
+                <StatPill
+                  icon={<Users className="h-4 w-4" />}
+                  label={
+                    <>
+                      {totalClaims} / {maxClaims} · <span className="opacity-80">restan</span>{' '}
+                      <span className="font-semibold">{remaining}</span>
+                    </>
+                  }
+                />
+              ) : (
+                <StatPill icon={<Users className="h-4 w-4" />} label={`${totalClaims} claims`} />
+              )}
+            </div>
+          </section>
+          {/* ===== FIN HERO ===== */}
+
+          {/* Tarjeta de claim */}
+          <div className="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur-2xl shadow-[0_10px_40px_-20px_rgba(0,0,0,.6)]">
+            <h2 className="text-center text-lg font-semibold">Reclama tu POAP</h2>
+            <p className="mt-1 text-center text-sm text-white/70">
+              Conecta tu wallet y reclama tu prueba de asistencia (costo 0)
+            </p>
+
+            <div className="mx-auto mt-6 max-w-2xl space-y-4">
+              {/* estado */}
+              {state.status === 'success' && (
+                <div className="rounded-2xl border border-emerald-400/30 bg-emerald-400/10 p-4 text-emerald-100">
+                  <div className="flex items-start gap-3">
+                    <CheckCircle2 className="mt-0.5 h-5 w-5" />
+                    <div className="text-sm">
+                      <p className="font-medium">{state.message}</p>
+                      <div className="mt-2 grid gap-1">
+                        <div>
+                          <span className="text-emerald-200/80">NFT Mint:</span>{' '}
+                          <code className="rounded bg-emerald-400/15 px-2 py-0.5">{state.mint}</code>
+                        </div>
+                        <a
+                          href={state.explorerUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 text-emerald-100/90 underline-offset-2 hover:underline"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" /> Ver en Explorer
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {state.status === 'error' && (
+                <div className="rounded-2xl border border-red-400/30 bg-red-400/10 p-4 text-red-100">
+                  {state.error}
+                </div>
+              )}
+
+              {/* wallet */}
+              <div>
+                <div className="text-xs text-white/60">Wallet conectada</div>
+                <div className="mt-1 rounded-xl border border-white/10 bg-white/5 p-3 font-mono text-sm text-white/80">
+                  {connected ? publicKey?.toString() : '— no conectada —'}
+                </div>
+              </div>
+
+              {/* código secreto (si aplica) */}
+              {campaign.secretCode && state.status !== 'success' && (
+                <div>
+                  <label className="text-xs text-white/60">Código secreto</label>
+                  <input
+                    value={secret}
+                    onChange={(e) => setSecret(e.target.value)}
+                    placeholder="Ingresa el código del evento"
+                    className="mt-1 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm outline-none placeholder:text-white/30 focus:border-white/20"
                   />
                 </div>
               )}
-              <CardTitle className="text-2xl">{campaign.name}</CardTitle>
-              {campaign.description && (
-                <CardDescription className="text-base mt-2">
-                  {campaign.description}
-                </CardDescription>
-              )}
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                <div className="flex items-center">
-                  <Calendar className="mr-2 h-4 w-4 text-gray-500" />
-                  <span>{formatDate(campaign.eventDate)}</span>
-                </div>
-                {campaign.location && (
-                  <div className="flex items-center">
-                    <MapPin className="mr-2 h-4 w-4 text-gray-500" />
-                    <span>{campaign.location}</span>
-                  </div>
-                )}
-                <div className="flex items-center">
-                  <Users className="mr-2 h-4 w-4 text-gray-500" />
-                  <span>
-                    {formatNumber(campaign._count?.claims || 0)} claimed
-                    {campaign.maxClaims && ` / ${formatNumber(campaign.maxClaims)}`}
-                  </span>
-                </div>
-                <div className="flex items-center">
-                  <Badge variant={campaign.isActive ? "success" : "secondary"}>
-                    {campaign.isActive ? "Active" : "Inactive"}
-                  </Badge>
-                </div>
-              </div>
 
-              {campaign.externalUrl && (
-                <>
-                  <Separator className="my-4" />
-                  <div className="text-center">
-                    <a
-                      href={campaign.externalUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center text-indigo-600 hover:text-indigo-500"
-                    >
-                      <ExternalLink className="mr-2 h-4 w-4" />
-                      Visit Event Website
-                    </a>
-                  </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Claim Section */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-center">Claim Your POAP</CardTitle>
-              <CardDescription className="text-center">
-                Connect your wallet and claim your Proof of Attendance NFT
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Wallet Connection */}
-              {!connected ? (
-                <div className="text-center">
-                  <p className="text-gray-600 mb-4">
-                    Connect your Solana wallet to claim your POAP
-                  </p>
-                  <WalletMultiButton />
-                </div>
-              ) : (
-                <>
-                  {/* Success State */}
-                  {claimState.status === 'success' && claimState.result && (
-                    <Alert variant="default" className="border-green-200 bg-green-50">
-                      <CheckCircle className="h-4 w-4 text-green-600" />
-                      <AlertDescription className="text-green-800">
-                        <div className="space-y-2">
-                          <p className="font-medium">{claimState.result.message}</p>
-                          <div className="space-y-1 text-sm">
-                            <p>
-                              <strong>NFT Mint:</strong>{' '}
-                              <code className="bg-green-100 px-2 py-1 rounded">
-                                {claimState.result.nft.mint}
-                              </code>
-                            </p>
-                            <p>
-                              <a
-                                href={claimState.result.explorerUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center text-green-700 hover:text-green-600"
-                              >
-                                <ExternalLink className="mr-1 h-3 w-3" />
-                                View on Solana Explorer
-                              </a>
-                            </p>
-                          </div>
-                        </div>
-                      </AlertDescription>
-                    </Alert>
-                  )}
-
-                  {/* Error State */}
-                  {claimState.status === 'error' && claimState.error && (
-                    <Alert variant="destructive">
-                      <AlertTriangle className="h-4 w-4" />
-                      <AlertDescription>{claimState.error}</AlertDescription>
-                    </Alert>
-                  )}
-
-                  {/* Claim Form */}
-                  {claimState.status !== 'success' && (
+              {/* botón claim */}
+              {state.status !== 'success' && (
+                <Button
+                  disabled={!campaign.isActive || state.status === 'loading' || !connected}
+                  onClick={claim}
+                  className="flex w-full items-center justify-center rounded-xl border border-emerald-400/30 bg-emerald-500/15 py-3 text-emerald-100 hover:bg-emerald-500/25"
+                >
+                  {state.status === 'loading' ? (
                     <>
-                      <div className="space-y-4">
-                        <div>
-                          <Label>Connected Wallet</Label>
-                          <div className="mt-1 p-3 bg-gray-50 rounded-lg">
-                            <code className="text-sm">{publicKey?.toString()}</code>
-                          </div>
-                        </div>
-
-                        {campaign.secretCode && (
-                          <div>
-                            <Label htmlFor="secretCode">Secret Code</Label>
-                            <Input
-                              id="secretCode"
-                              type="text"
-                              placeholder="Enter the event secret code"
-                              value={secretCode}
-                              onChange={(e) => setSecretCode(e.target.value)}
-                              disabled={claimState.status === 'loading'}
-                            />
-                            <p className="text-xs text-gray-500 mt-1">
-                              This code was provided by the event organizer
-                            </p>
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="text-center">
-                        <Button
-                          onClick={handleClaim}
-                          disabled={claimState.status === 'loading' || !campaign.isActive}
-                          size="lg"
-                          className="w-full"
-                        >
-                          {claimState.status === 'loading' ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Claiming POAP...
-                            </>
-                          ) : (
-                            <>
-                              <Zap className="mr-2 h-4 w-4" />
-                              Claim POAP (Free)
-                            </>
-                          )}
-                        </Button>
-                        {!campaign.isActive && (
-                          <p className="text-sm text-red-600 mt-2">
-                            This campaign is no longer active
-                          </p>
-                        )}
-                      </div>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Reclamando…
+                    </>
+                  ) : (
+                    <>
+                      <Zap className="mr-2 h-4 w-4" /> Claim POAP (Free)
                     </>
                   )}
-                </>
+                </Button>
               )}
 
-              {/* Info */}
-              <div className="text-center text-sm text-gray-500 space-y-1">
-                <p>🔒 This POAP is minted gaslessly - you pay no fees!</p>
-                <p>⚡ Powered by Solana blockchain</p>
-                {campaign.maxClaims && (
-                  <p>
-                    📊 {formatNumber(campaign.claimsRemaining || 0)} POAPs remaining
-                  </p>
-                )}
+              {/* nota + progreso */}
+              <div className="space-y-2 text-center text-xs text-white/60">
+                <div>🔒 Gasless mint en Solana</div>
+                {campaign.maxClaims ? (
+                  <div className="mx-auto max-w-md space-y-1">
+                    <Progress value={totalClaims} max={campaign.maxClaims} />
+                    <div>
+                      Quedan <span className="font-medium text-white">{remaining}</span> POAP(s)
+                    </div>
+                  </div>
+                ) : null}
               </div>
-            </CardContent>
-          </Card>
-        </div>
-      </main>
+            </div>
+          </div>
+        </main>
+      </div>
     </div>
   )
 }

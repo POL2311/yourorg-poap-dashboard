@@ -1,5 +1,5 @@
+// app/user/layout.tsx
 'use client'
-
 import React from 'react'
 import AppShell from '@/components/shell/AppShell'
 

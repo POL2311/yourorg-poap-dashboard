@@ -133,8 +133,8 @@ export default function ApiKeysPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">API Keys</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-3xl font-bold text-white/80">API Keys</h1>
+          <p className="text-white/80 mt-1">
             Manage API keys for accessing the POAP claiming endpoints
           </p>
         </div>
@@ -252,11 +252,11 @@ export default function ApiKeysPage() {
 
           {apiKeys.length === 0 ? (
             <div className="text-center py-12">
-              <Key className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
+              <Key className="mx-auto h-12 w-12 text-white mb-4" />
+              <h3 className="text-lg font-medium text-white mb-2">
                 No API keys yet
               </h3>
-              <p className="text-gray-600 mb-6">
+              <p className="text-white mb-6">
                 Create your first API key to start using the POAP claiming API
               </p>
               <Button onClick={() => setIsCreateDialogOpen(true)} disabled={!canCreateApiKey}>
@@ -284,7 +284,7 @@ export default function ApiKeysPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center space-x-2">
-                        <code className="bg-gray-100 px-2 py-1 rounded text-sm font-mono">
+                        <code className=" px-2 py-1 rounded text-sm font-mono">
                           {visibleKeys.has(apiKey.id) 
                             ? apiKey.key 
                             : truncateAddress(apiKey.key, 8)
@@ -378,14 +378,14 @@ export default function ApiKeysPage() {
         <CardContent className="space-y-4">
           <div>
             <h4 className="font-medium mb-2">Authentication Header</h4>
-            <code className="block bg-gray-100 p-3 rounded text-sm">
+            <code className="block text-black bg-gray-100 p-3 rounded text-sm">
               Authorization: ApiKey YOUR_API_KEY_HERE
             </code>
           </div>
           
           <div>
             <h4 className="font-medium mb-2">Example POAP Claim Request</h4>
-            <code className="block bg-gray-100 p-3 rounded text-sm whitespace-pre-wrap">
+            <code className="block bg-gray-100 text-black p-3 rounded text-sm whitespace-pre-wrap">
               {`curl -X POST ${process.env.NEXT_PUBLIC_API_URL}/api/poap/claim \\
                 -H "Authorization: ApiKey YOUR_API_KEY_HERE" \\
                 -H "Content-Type: application/json" \\

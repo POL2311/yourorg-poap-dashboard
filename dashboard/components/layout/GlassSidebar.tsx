@@ -6,10 +6,7 @@ import { useMemo, useState } from 'react'
 import { useAuth } from '@/hooks/use-auth'
 import {
   Home, LayoutGrid, BarChart3, QrCode, KeyRound, Settings, User2,
-  ChevronLeft, ChevronRight,
-  User,
-  AlignHorizontalJustifyEnd,
-  BugPlayIcon
+  ChevronLeft, ChevronRight
 } from 'lucide-react'
 
 // util simple
@@ -20,7 +17,7 @@ function cx(...cls: (string | false | undefined)[]) {
 type Item = { href: string; label: string; icon: React.ComponentType<{ className?: string }> }
 
 const NAV_ITEMS: Item[] = [
-  { href: '/market',                 label: 'Mercado',   icon: BugPlayIcon },
+  { href: '/market',                 label: 'Mercado',   icon: User2 },
   { href: '/dashboard',            label: 'Dashboard',   icon: LayoutGrid },
   { href: '/dashboard/analytics',  label: 'Analytics',   icon: BarChart3 },
   { href: '/dashboard/campaigns',  label: 'Campañas',    icon: QrCode },

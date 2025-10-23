@@ -6,19 +6,20 @@ import { useAuth } from '@/hooks/use-auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Zap, Mail, Lock, Loader2 } from 'lucide-react'
+import { Zap, Mail, Lock, Loader2, Eye, EyeOff } from 'lucide-react'
 import Link from 'next/link'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [show, setShow] = useState(false)
   const [error, setError] = useState('')
   const { login, isLoading, isAuthenticated, user } = useAuth()
   const router = useRouter()
 
-  // 🔁 Redirigir si ya está autenticado
+  // Redirigir si ya está autenticado
   useEffect(() => {
     if (isAuthenticated && user) {
       const redirectPath =
@@ -26,12 +27,11 @@ export default function LoginPage() {
           ? '/user'
           : user?.role === 'ADMIN'
           ? '/dashboard'
-          : '/user' // fallback si no hay rol definido
+          : '/user'
       router.push(redirectPath)
     }
   }, [isAuthenticated, user, router])
 
-  // 🧠 Manejador del formulario
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
@@ -43,54 +43,41 @@ export default function LoginPage() {
 
     try {
       const result = await login({ email, password })
-      console.log('🔐 Login result:', result)
-
       if (result.success) {
-        // ✅ Usa la ruta devuelta por el backend o decide según el rol
-        const redirectPath =
-          result.redirect ||
-          (result.role === 'USER' ? '/user' : '/dashboard')
-
+        const redirectPath = result.redirect || (result.role === 'USER' ? '/user' : '/dashboard')
         router.push(redirectPath)
       } else {
         setError(result.error || 'Login failed')
       }
     } catch (err) {
-      console.error('Login error:', err)
       setError('An unexpected error occurred. Please try again.')
     }
   }
 
-  // 🚫 Evita mostrar el formulario si ya está autenticado
   if (isAuthenticated) return null
 
-  // ==========================
-  // 💄 Render del formulario
-  // ==========================
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        {/* ===== Header ===== */}
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center space-x-2 mb-4">
-            <Zap className="h-8 w-8 text-indigo-600" />
-            <span className="text-2xl font-bold text-gray-900">Gasless Infrastructure</span>
+    <div className="min-h-[100dvh] bg-slate-950 text-white relative">
+      {/* glow background */}
+      <div className="pointer-events-none absolute inset-0 -z-10">
+        <div className="absolute inset-0 bg-[radial-gradient(900px_500px_at_0%_0%,#6ee7b7_0%,transparent_60%),radial-gradient(900px_600px_at_100%_20%,#a78bfa_0%,transparent_55%)] opacity-[0.18]" />
+      </div>
+
+      <div className="mx-auto max-w-7xl px-6 py-12">
+        {/* Brand + heading */}
+        <div className="text-center">
+          <div className="inline-flex items-center gap-2 text-white/90">
+            <Zap className="h-6 w-6 text-emerald-300" />
+            <span className="text-lg font-semibold tracking-tight">SoPoap</span>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Welcome back</h1>
-          <p className="text-gray-600 mt-2">Sign in to your account</p>
+          <h1 className="mt-3 text-2xl font-semibold">Welcome back</h1>
+          <p className="text-sm text-white/70">Sign in to your account</p>
         </div>
 
-        {/* ===== Login Form ===== */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Login</CardTitle>
-            <CardDescription>
-              Enter your credentials to access your account
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Errores */}
+        {/* Glass card */}
+        <Card className="mx-auto mt-8 w-full max-w-md rounded-3xl border-white/10 bg-white/5 backdrop-blur-2xl shadow-[0_20px_60px_-30px_rgba(0,0,0,.7)]">
+          <CardContent className="p-6">
+            <form onSubmit={handleSubmit} className="space-y-5">
               {error && (
                 <Alert variant="destructive">
                   <AlertDescription>{error}</AlertDescription>
@@ -99,16 +86,16 @@ export default function LoginPage() {
 
               {/* Email */}
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email" className="text-white/80">Email</Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Mail className="absolute left-3 top-3 h-4 w-4 text-white/50" />
                   <Input
                     id="email"
                     type="email"
                     placeholder="you@example.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="pl-10"
+                    className="pl-10 border-white/10 bg-white/5 text-white placeholder:text-white/30"
                     disabled={isLoading}
                     required
                   />
@@ -117,55 +104,66 @@ export default function LoginPage() {
 
               {/* Password */}
               <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password" className="text-white/80">Password</Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Lock className="absolute left-3 top-3 h-4 w-4 text-white/50" />
                   <Input
                     id="password"
-                    type="password"
-                    placeholder="Enter your password"
+                    type={show ? 'text' : 'password'}
+                    placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10"
+                    className="pl-10 pr-10 border-white/10 bg-white/5 text-white placeholder:text-white/30"
                     disabled={isLoading}
                     required
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShow((s) => !s)}
+                    className="absolute right-3 top-2.5 text-white/60 hover:text-white"
+                    aria-label="Toggle password visibility"
+                  >
+                    {show ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  </button>
                 </div>
               </div>
 
               {/* Submit */}
-              <Button type="submit" className="w-full" disabled={isLoading}>
+              <Button
+                type="submit"
+                className="w-full border border-emerald-400/30 bg-emerald-500/15 text-emerald-100 hover:bg-emerald-500/25"
+                disabled={isLoading}
+              >
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Signing in...
+                    Signing in…
                   </>
                 ) : (
                   'Sign in'
                 )}
               </Button>
-            </form>
 
-            {/* Register Link */}
-            <div className="mt-6 text-center">
-              <p className="text-sm text-gray-600">
+              <p className="text-center text-sm text-white/70">
                 Don’t have an account?{' '}
-                <Link
-                  href="/register"
-                  className="text-indigo-600 hover:text-indigo-500 font-medium"
-                >
+                <Link href="/register" className="text-white hover:opacity-90 underline underline-offset-4">
                   Sign up
                 </Link>
+              </p>
+            </form>
+            {/* Demo Credentials */}
+            <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+              <p className="text-sm font-medium text-gray-700 mb-2">Testear app con: </p>
+              <p className="text-xs text-gray-600">
+                Email: demo@poap-infra.com<br />
+                Password: demo123
               </p>
             </div>
           </CardContent>
         </Card>
 
-        {/* Back to Home */}
-        <div className="text-center mt-6">
-          <Link href="/" className="text-sm text-gray-600 hover:text-gray-900">
-            ← Back to home
-          </Link>
+        <div className="mx-auto mt-6 max-w-md text-center">
+          <Link href="/public" className="text-sm text-white/60 hover:text-white">← Back to home</Link>
         </div>
       </div>
     </div>

@@ -64,12 +64,12 @@ export function StatsCards({ stats }: StatsCardsProps) {
 
   if (stats.isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
         {[...Array(4)].map((_, i) => (
-          <Card key={i}>
+          <Card key={i} className="liquid-surface">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <div className="h-4 bg-gray-200 rounded w-24 animate-pulse" />
-              <div className="h-8 w-8 bg-gray-200 rounded animate-pulse" />
+              <div className="h-4 w-24 animate-pulse rounded bg-white/10" />
+              <div className="h-8 w-8 animate-pulse rounded bg-white/10" />
             </CardHeader>
             <CardContent>
               <div className="h-8 bg-gray-200 rounded w-16 mb-2 animate-pulse" />
@@ -86,7 +86,7 @@ export function StatsCards({ stats }: StatsCardsProps) {
       {cards.map((card, index) => (
         <Card key={index} className="hover:shadow-md transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">
+            <CardTitle className="text-sm font-medium ">
               {card.title}
             </CardTitle>
             <div className={`p-2 rounded-lg ${card.bgColor}`}>
@@ -96,10 +96,10 @@ export function StatsCards({ stats }: StatsCardsProps) {
           <CardContent>
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-2xl font-bold text-gray-900">
+                <div className="text-2xl font-bold text-sm-900">
                   {card.value}
                 </div>
-                <div className="flex items-center text-sm text-gray-500 mt-1">
+                <div className="flex items-center text-sm text-sm-500 mt-1">
                   {card.trend === 'up' && (
                     <ArrowUpRight className="h-3 w-3 text-green-500 mr-1" />
                   )}
