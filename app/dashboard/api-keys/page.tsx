@@ -65,21 +65,23 @@ export default function ApiKeysPage() {
     }
 
     const result = await createApiKeyMutation.mutateAsync({ name: newKeyName })
-    if (result.success) {
-      setIsCreateDialogOpen(false)
-      setNewKeyName('')
-      // Show the new key temporarily
-      if (result.data) {
-        setVisibleKeys(prev => new Set(prev).add(result.data.id))
-        setTimeout(() => {
-          setVisibleKeys(prev => {
-            const newSet = new Set(prev)
-            newSet.delete(result.data.id)
-            return newSet
-          })
-        }, 30000) // Hide after 30 seconds
-      }
-    }
+    if (!result.success || !result.data) return
+
+    setIsCreateDialogOpen(false)
+    setNewKeyName('')
+
+    // Capturamos la data para que TypeScript no la considere opcional dentro de callbacks
+    const created = result.data
+
+    // Mostrar la nueva key temporalmente (30s)
+    setVisibleKeys(prev => new Set(prev).add(created.id))
+    setTimeout(() => {
+      setVisibleKeys(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(created.id)
+        return newSet
+      })
+    }, 30_000)
   }
 
   const handleDeactivateApiKey = async (id: string, name: string) => {
@@ -96,11 +98,8 @@ export default function ApiKeysPage() {
   const toggleKeyVisibility = (keyId: string) => {
     setVisibleKeys(prev => {
       const newSet = new Set(prev)
-      if (newSet.has(keyId)) {
-        newSet.delete(keyId)
-      } else {
-        newSet.add(keyId)
-      }
+      if (newSet.has(keyId)) newSet.delete(keyId)
+      else newSet.add(keyId)
       return newSet
     })
   }
@@ -386,14 +385,14 @@ export default function ApiKeysPage() {
           <div>
             <h4 className="font-medium mb-2">Example POAP Claim Request</h4>
             <code className="block bg-gray-100 text-black p-3 rounded text-sm whitespace-pre-wrap">
-              {`curl -X POST ${process.env.NEXT_PUBLIC_API_URL}/api/poap/claim \\
-                -H "Authorization: ApiKey YOUR_API_KEY_HERE" \\
-                -H "Content-Type: application/json" \\
-                -d '{
-                  "userPublicKey": "USER_SOLANA_PUBLIC_KEY",
-                  "campaignId": "CAMPAIGN_ID",
-                  "secretCode": "EVENT_SECRET_CODE"
-                }'`}
+{`curl -X POST ${process.env.NEXT_PUBLIC_API_URL}/api/poap/claim \\
+  -H "Authorization: ApiKey YOUR_API_KEY_HERE" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "userPublicKey": "USER_SOLANA_PUBLIC_KEY",
+    "campaignId": "CAMPAIGN_ID",
+    "secretCode": "EVENT_SECRET_CODE"
+  }'`}
             </code>
           </div>
 
