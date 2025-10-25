@@ -357,3 +357,4 @@ function safeDate(d?: string | null) {
   const date = new Date(d)
   return isNaN(date.getTime()) ? '—' : date.toLocaleDateString()
 }
+
