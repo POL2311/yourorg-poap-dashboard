@@ -5,16 +5,18 @@ import {
   ConnectionProvider,
   WalletProvider as SolanaWalletProvider,
 } from '@solana/wallet-adapter-react'
+import {
+  PhantomWalletAdapter,
+  SolflareWalletAdapter,
+} from '@solana/wallet-adapter-wallets'
 import { WalletModalProvider } from '@solana/wallet-adapter-react-ui'
-import { PhantomWalletAdapter, SolflareWalletAdapter } from '@solana/wallet-adapter-wallets'
+
+// IMPORTA EL CSS SOLO AQUÍ (y en ningún otro sitio)
 import '@solana/wallet-adapter-react-ui/styles.css'
 
 export const WalletProvider: React.FC<PropsWithChildren> = ({ children }) => {
-  // Usa variable pública de Next (configúrala en Netlify/Vercel con este mismo nombre)
-  const endpoint = useMemo(
-    () => process.env.NEXT_PUBLIC_SOLANA_RPC_URL ?? 'https://api.devnet.solana.com',
-    []
-  )
+  const endpoint =
+    process.env.NEXT_PUBLIC_SOLANA_RPC_URL || 'https://api.devnet.solana.com'
 
   const wallets = useMemo(
     () => [new PhantomWalletAdapter(), new SolflareWalletAdapter()],
