@@ -10,14 +10,10 @@ export const viewport: Viewport = {
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'POAP Dashboard',
-  description: 'Organizer dashboard for multi-tenant POAP',
+  title: 'SoPOAP',
+  description: 'First POAP Platform on Solana',
   icons: {
     icon: '/favicon.ico',
-    apple: [
-      { url: '/apple-touch-icon.png', sizes: '180x180' },
-      { url: '/apple-touch-icon-precomposed.png', sizes: '180x180' },
-    ],
   },
 };
 

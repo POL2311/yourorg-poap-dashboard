@@ -16,10 +16,10 @@ import {
   CheckCircle2, Stars, ArrowRight, Coins,
 } from 'lucide-react'
 
-// Tokens reclamados (SPL) vía RPC
+// Claimed tokens (SPL) via RPC
 import { useClaimedTokens } from '@/hooks/use-claimed-tokens'
 
-// Galería redonda tipo badge para tokens reclamados
+// Round badge-style gallery for claimed tokens
 import ClaimedTokensGallery from '@/components/tokens/ClaimedTokensGallery'
 
 type ClaimStats = {
@@ -67,7 +67,7 @@ function LevelBadge({ level, name }: { level: number; name: string }) {
   return (
     <div className="flex items-center gap-2 rounded-full border border-purple-400/30 bg-purple-400/15 px-3 py-1.5 text-sm text-purple-100">
       <Stars className="h-4 w-4" />
-      <span className="font-semibold">Nivel {level}</span>
+      <span className="font-semibold">Level {level}</span>
       <span className="opacity-80">· {name}</span>
     </div>
   )
@@ -109,7 +109,7 @@ function throttle<T extends (...args: any[]) => void>(fn: T, ms: number) {
   }
 }
 
-/* ---------- página ---------- */
+/* ---------- page ---------- */
 export default function UserProfilePage() {
   const router = useRouter()
   const { user, isAuthenticated, isLoading, logout, refreshProfile } = useAuth()
@@ -120,7 +120,7 @@ export default function UserProfilePage() {
   const [claimStats, setClaimStats] = useState<ClaimStats | null>(null)
   const [statsLoading, setStatsLoading] = useState(false)
 
-  // (opcional) filtrar por mints de tus campañas
+  // (optional) filter by mints of your campaigns
   const campaignMints: string[] | undefined = undefined
   const {
     data: claimsData,
@@ -128,7 +128,7 @@ export default function UserProfilePage() {
     error: claimsError,
   } = useClaimedTokens(connected ? userPublicKey || undefined : undefined, campaignMints)
 
-  /* ---------- guard de login (una vez) ---------- */
+  /* ---------- login guard (once) ---------- */
   useEffect(() => {
     if (isLoading) return
     const token =
@@ -140,7 +140,7 @@ export default function UserProfilePage() {
     if (!isAuthenticated && !token) router.replace('/login')
   }, [isLoading, isAuthenticated, router])
 
-  /* ---------- fetchers con abort ---------- */
+  /* ---------- fetchers with abort ---------- */
   const abortRef = useRef<AbortController | null>(null)
   const loadClaimStats = async () => {
     if (!user?.id) return
@@ -156,28 +156,28 @@ export default function UserProfilePage() {
     } catch (e: any) {
       if (e?.name !== 'AbortError') {
         console.error(e)
-        toast.error('Error al cargar estadísticas de claims')
+        toast.error('Error loading claim statistics')
       }
     } finally {
       setStatsLoading(false)
     }
   }
 
-  /* ---------- inicialización protegida (evita StrictMode doble) ---------- */
+  /* ---------- protected init (avoids StrictMode double) ---------- */
   const didInit = useRef(false)
   useEffect(() => {
     if (!isAuthenticated || didInit.current) return
     didInit.current = true
     ;(async () => {
       try {
-        await refreshProfile()   // solo al montar
+        await refreshProfile()   // only on mount
       } catch {}
-      await loadClaimStats()     // solo al montar
+      await loadClaimStats()     // only on mount
     })()
     return () => abortRef.current?.abort()
   }, [isAuthenticated])
 
-  /* ---------- cambios de wallet con throttle ---------- */
+  /* ---------- wallet changes with throttle ---------- */
   const throttledReload = useRef(throttle(loadClaimStats, 800)).current
   useEffect(() => {
     if (!isAuthenticated) return
@@ -186,7 +186,7 @@ export default function UserProfilePage() {
   }, [connected, userPublicKey, isAuthenticated, throttledReload])
 
   // =========================
-  // FUSIÓN DE PROGRESO (badges)
+  // PROGRESS MERGE (badges)
   // =========================
   const claimedCount = Number(claimsData?.totalUiAmount ?? 0)
 
@@ -222,19 +222,19 @@ export default function UserProfilePage() {
     return (
       <div className="grid place-items-center h-[60vh]">
         <div className="flex items-center gap-3 text-white">
-          <Loader2 className="h-5 w-5 animate-spin" /> Cargando perfil…
+          <Loader2 className="h-5 w-5 animate-spin" /> Loading profile...
         </div>
       </div>
     )
   }
 
-  // --- mapear tokens reclamados -> items para la galería redonda
+  // --- map claimed tokens -> items for round gallery
   const tokenItems = (claimsData?.claims ?? []).map((c: any) => {
     const accounts = Number(c.accounts ?? c.count ?? 1)
     const claimsTotal =
       typeof c.totalUi === 'number' ? c.totalUi : Number(c.totalUi || 0)
 
-    // pequeña regla visual de rareza (ajústala si quieres)
+    // small visual rarity rule (adjust if you want)
     const rarity =
       accounts >= 10 ? 'legendary'
       : accounts >= 5 ? 'epic'
@@ -250,7 +250,7 @@ export default function UserProfilePage() {
       {/* Top bar */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <h1 className="text-3xl font-semibold tracking-tight">Mi Perfil</h1>
+          <h1 className="text-3xl font-semibold tracking-tight">Profile</h1>
           <TierChip tier={(user.tier || 'FREE').toUpperCase()} />
         </div>
         <Button
@@ -258,11 +258,11 @@ export default function UserProfilePage() {
           className="rounded-full border border-red-500/30 bg-red-600/20 px-4 text-white hover:bg-red-600/30"
         >
           <LogOut className="mr-2 h-4 w-4" />
-          Cerrar sesión
+          Log out
         </Button>
       </div>
 
-      {/* Banner líquido */}
+      {/* Liquid banner */}
       <div className="liquid-panel overflow-hidden p-0">
         <div className="h-40 w-full bg-gradient-to-r from-emerald-400/20 via-slate-400/10 to-fuchsia-400/20" />
         <div className="px-6 pb-6 -mt-10 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
@@ -283,7 +283,7 @@ export default function UserProfilePage() {
               </div>
               <div className="mt-2 flex flex-wrap gap-2">
                 <StatPill label="Claims" value={claimStats ? claimStats.totalClaims : 0} icon={<Trophy className="h-4 w-4 text-yellow-300" />} />
-                <StatPill label="Insignias" value={`${unlocked}/${total}`} icon={<Shield className="h-4 w-4 text-emerald-300" />} />
+                <StatPill label="Badges" value={`${unlocked}/${total}`} icon={<Shield className="h-4 w-4 text-emerald-300" />} />
                 <StatPill label="Plan" value={(user.tier || 'Free').toUpperCase()} icon={<Sparkles className="h-4 w-4 text-fuchsia-300" />} />
               </div>
             </div>
@@ -292,7 +292,7 @@ export default function UserProfilePage() {
           <div className="flex gap-2">
             <Button onClick={loadClaimStats} disabled={statsLoading} className="rounded-full border border-white/15 bg-white/10 hover:bg-white/15">
               <RefreshCw className={`mr-2 h-4 w-4 ${statsLoading ? 'animate-spin' : ''}`} />
-              Actualizar
+              Update
             </Button>
 
             {connected ? (
@@ -302,61 +302,61 @@ export default function UserProfilePage() {
                 className="rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-100 hover:bg-emerald-500/20"
               >
                 <Wallet className="mr-2 h-4 w-4" />
-                {walletName} conectado
+                {walletName} connect
               </Button>
             ) : isWalletAvailable ? (
               <Button onClick={connect} className="rounded-full border border-white/15 bg-white/10 hover:bg-white/15">
                 <Wallet className="mr-2 h-4 w-4" />
-                Conectar wallet
+                Connect wallet
               </Button>
             ) : (
               <div className="rounded-full border border-white/10 px-4 py-2 text-sm text-white/70">
-                Instala Phantom / Solflare
+                Install Phantom / Solflare
               </div>
             )}
           </div>
         </div>
       </div>
 
-      {/* Grid principal */}
+      {/* Main grid */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* Información */}
+        {/* Information */}
         <Card className="rounded-2xl border-white/15 bg-white/10 backdrop-blur-xl">
-          <CardHeader><CardTitle className="text-white/90">Información</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-white/90">Information</CardTitle></CardHeader>
           <CardContent className="space-y-3 text-[15px]">
-            <Row k="Correo" v={<span className="text-emerald-200">{user.email}</span>} />
-            {user.company && <Row k="Empresa" v={<span className="text-fuchsia-200">{user.company}</span>} />}
+            <Row k="Email" v={<span className="text-emerald-200">{user.email}</span>} />
+            {user.company && <Row k="Company" v={<span className="text-fuchsia-200">{user.company}</span>} />}
             <Row k="Plan" v={<TierChip tier={(user.tier || 'FREE').toUpperCase()} />} />
-            <Row k="Miembro desde" v={<span className="text-emerald-200">{new Date(user.createdAt).toLocaleDateString()}</span>} />
+            <Row k="Member since" v={<span className="text-emerald-200">{new Date(user.createdAt).toLocaleDateString()}</span>} />
           </CardContent>
         </Card>
 
         {/* Wallet */}
         <Card className="rounded-2xl border-white/15 bg-white/10 backdrop-blur-xl">
-          <CardHeader><CardTitle className="text-white/90">Wallet Solana</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-white/90">Solana Wallet</CardTitle></CardHeader>
           <CardContent className="space-y-3">
             {connected ? (
               <>
-                <Row k="Estado" v={<span className="text-emerald-300">Conectada</span>} />
+                <Row k="Status" v={<span className="text-emerald-300">Connected</span>} />
                 <Row k="Wallet" v={<span className="text-white/85">{walletName}</span>} />
                 <Row
-                  k="Dirección"
+                  k="Address"
                   v={<code className="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-sm text-white/70">
                     {userPublicKey?.slice(0, 8)}…{userPublicKey?.slice(-8)}
                   </code>}
                 />
                 <Button onClick={disconnect} variant="outline" className="mt-1 w-full rounded-xl border-white/15 bg-white/5 text-white hover:bg-white/10">
-                  Desconectar
+                  Disconnect
                 </Button>
               </>
             ) : (
               <>
-                <Row k="Estado" v={<span className="text-white/70">Desconectada</span>} />
-                <p className="text-sm text-white/75">Conecta tu wallet para ver tus tokens reclamados.</p>
+                <Row k="Status" v={<span className="text-white/70">Disconnected</span>} />
+                <p className="text-sm text-white/75">Connect your wallet to view your claimed tokens.</p>
                 {isWalletAvailable && (
                   <Button onClick={connect} disabled={connecting} className="w-full rounded-xl border border-white/15 bg-white/10 text-white hover:bg-white/15">
                     {connecting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wallet className="mr-2 h-4 w-4" />}
-                    {connecting ? 'Conectando…' : 'Conectar'}
+                    {connecting ? 'Connecting…' : 'Connect'}
                   </Button>
                 )}
               </>
@@ -367,7 +367,7 @@ export default function UserProfilePage() {
         {/* Stats */}
         <Card className="rounded-2xl border-white/15 bg-white/10 backdrop-blur-xl">
           <CardHeader className="flex items-center justify-between">
-            <CardTitle className="text-white/90">Estadísticas</CardTitle>
+            <CardTitle className="text-white/90">Stats</CardTitle>
             <Button onClick={loadClaimStats} variant="outline" size="sm" className="rounded-full border-white/15 bg-white/5 text-white hover:bg-white/10">
               <RefreshCw className={`h-4 w-4 ${statsLoading ? 'animate-spin' : ''}`} />
             </Button>
@@ -379,34 +379,34 @@ export default function UserProfilePage() {
               </div>
             ) : claimStats ? (
               <div className="grid gap-3">
-                <Tile label="Claims Totales" value={claimStats.totalClaims} gradient="from-emerald-500/20 to-emerald-600/20" />
-                <Tile label={`Nivel · ${claimStats.level.name}`} value={claimStats.level.level} gradient="from-fuchsia-500/20 to-purple-600/20" />
-                <Tile label="Badges Desbloqueados" value={`${unlocked}/${total}`} gradient="from-sky-500/20 to-cyan-600/20" />
+                <Tile label="Total Claims" value={claimStats.totalClaims} gradient="from-emerald-500/20 to-emerald-600/20" />
+                <Tile label={`Level · ${claimStats.level.name}`} value={claimStats.level.level} gradient="from-fuchsia-500/20 to-purple-600/20" />
+                <Tile label="Badges Unlocked" value={`${unlocked}/${total}`} gradient="from-sky-500/20 to-cyan-600/20" />
               </div>
             ) : (
-              <div className="py-8 text-center text-white/75">Sin datos aún</div>
+              <div className="py-8 text-center text-white/75">No data yet.</div>
             )}
           </CardContent>
         </Card>
       </div>
 
-      {/* Acciones / CTA */}
+      {/* Actions / CTA */}
       <div className="rounded-2xl border border-white/15 bg-white/10 backdrop-blur-xl p-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <h3 className="text-xl font-semibold">Sigue construyendo</h3>
-            <p className="text-white/75 text-sm">Crea una campaña o explora colecciones activas.</p>
+            <h3 className="text-xl font-semibold">Keep Creating</h3>
+            <p className="text-white/75 text-sm">Create a campaign or explore active collections</p>
           </div>
           <div className="flex gap-3">
-            <Link href="/" className="rounded-full border border-white/15 bg-white/10 px-5 py-2.5 hover:bg-white/15">Ver campañas</Link>
+            <Link href="/" className="rounded-full border border-white/15 bg-white/10 px-5 py-2.5 hover:bg-white/15">See campaigns</Link>
             <Link href="/dashboard" className="rounded-full border border-white/15 bg-white/10 px-5 py-2.5 hover:bg-white/15 flex items-center gap-2">
-              Ir al Dashboard <ArrowRight className="h-4 w-4" />
+              Go to Dashboard <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
         </div>
       </div>
 
-      {/* Badges (backend + progreso on-chain) */}
+      {/* Badges (backend + on-chain progress) */}
       {claimStats && (
         <section className="space-y-3">
           <BadgeGallery
@@ -417,7 +417,7 @@ export default function UserProfilePage() {
         </section>
       )}
 
-      {/* Tokens Reclamados (SPL vía RPC) */}
+      {/* Claimed Tokens (SPL via RPC) */}
       {connected && (
         <section className="space-y-3">
           {claimsLoading ? (
@@ -426,14 +426,14 @@ export default function UserProfilePage() {
             </div>
           ) : claimsError ? (
             <div className="rounded-2xl border border-red-400/30 bg-red-400/10 p-4 text-red-200">
-              No pudimos cargar tus tokens. Intenta de nuevo.
+              We couldn’t load your POAPs. Please try again.
             </div>
           ) : claimsData && tokenItems.length > 0 ? (
             <ClaimedTokensGallery
               title={
                 <span className="inline-flex items-center gap-2">
                   <Coins className="h-5 w-5 text-emerald-300" />
-                  Mis Tokens Reclamados
+                  My Claimed POAPs
                 </span> as unknown as string
               }
               items={tokenItems as any}
@@ -442,7 +442,7 @@ export default function UserProfilePage() {
               className="mt-1"
             />
           ) : (
-            <div className="text-sm text-white/75">Sin tokens reclamados todavía.</div>
+            <div className="text-sm text-white/75">No POAPs claimed yet.</div>
           )}
         </section>
       )}

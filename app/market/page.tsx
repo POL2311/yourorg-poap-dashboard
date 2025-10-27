@@ -52,7 +52,7 @@ export default function MarketPage() {
       } catch (e: any) {
         if (e.name !== 'AbortError') {
           console.error('Failed to load public campaigns:', e)
-          setError('No se pudieron cargar las campañas públicas.')
+          setError('Public campaigns could not be loaded.')
         }
       } finally {
         setLoading(false)
@@ -104,10 +104,10 @@ export default function MarketPage() {
             </div>
 
             <h1 className="mt-5 text-center text-4xl font-semibold md:text-5xl">
-              Descubre campañas activas
+              Discover active campaigns
             </h1>
             <p className="mx-auto mt-3 max-w-2xl text-center text-white/80">
-              Entra a una campaña y reclama tu POAP sin gas.
+              Enter a campaign and claim your POAP gasless.
             </p>
 
             {/* Buscador pill */}
@@ -122,7 +122,7 @@ export default function MarketPage() {
                 <input
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
-                  placeholder="Buscar campañas por título, lugar u organizador…"
+                  placeholder="Search campaigns by title, location or organizer…"
                   className="w-full rounded-full bg-transparent px-2 py-2 text-[15px] text-neutral-900 placeholder:text-neutral-400 focus:outline-none"
                 />
                 <button
@@ -134,7 +134,7 @@ export default function MarketPage() {
                   )}
                   onClick={(e) => e.preventDefault()}
                 >
-                  Buscar
+                  Search
                   <span className="pointer-events-none absolute inset-0 rounded-full [mask-image:linear-gradient(to_bottom,white,transparent_55%)] bg-white/30" />
                 </button>
               </div>
@@ -143,19 +143,19 @@ export default function MarketPage() {
               <div className="mt-3 flex flex-wrap items-center justify-center gap-2 text-xs">
                 <button className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-white/80 hover:bg-white/15">
                   <Filter className="mr-1 inline h-3.5 w-3.5" />
-                  Filtros
+                  Filters
                 </button>
                 <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-white/70">
-                  Hoy
+                  Today
                 </span>
                 <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-white/70">
-                  Esta semana
+                  This week
                 </span>
                 <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-white/70">
                   Virtual
                 </span>
                 <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-white/70">
-                  Presencial
+                  In person
                 </span>
               </div>
             </div>
@@ -218,7 +218,7 @@ export default function MarketPage() {
                     <div className="absolute right-4 top-4">
                       <span className="inline-flex items-center gap-1 rounded-full border border-white/20 bg-white/10 px-2 py-1 text-[11px] text-white/85">
                         <Sparkles className="h-3.5 w-3.5" />
-                        Activa
+                        Active
                       </span>
                     </div>
 
@@ -239,7 +239,7 @@ export default function MarketPage() {
                     {/* content */}
                     <h3 className="mt-4 line-clamp-1 text-lg font-semibold">{c.name}</h3>
                     <p className="mt-1 line-clamp-2 text-sm text-white/80">
-                      {c.description || 'Campaña sin descripción'}
+                      {c.description || 'Campaign without description'}
                     </p>
 
                     <div className="mt-3 flex items-center justify-between text-xs text-white/75">
@@ -263,7 +263,7 @@ export default function MarketPage() {
                           <span className="rounded-full border border-white/20 bg-white/10 px-2 py-0.5">
                             {c.totalClaims} claims
                             {typeof c.claimsRemaining === 'number' && (
-                              <> • quedan {Math.max(0, c.claimsRemaining)}</>
+                              <> • remaining {Math.max(0, c.claimsRemaining)}</>
                             )}
                           </span>
                         )}
@@ -277,7 +277,7 @@ export default function MarketPage() {
                           'bg-white/15 border border-white/20'
                         )}
                       >
-                        Ver campaña
+                        View campaign
                       </span>
                     </div>
                   </article>
@@ -358,14 +358,14 @@ function EmptyState({ q }: { q?: string }) {
       <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-white/10">
         <Search className="h-6 w-6 text-white/80" />
       </div>
-      <h3 className="mt-4 text-xl font-semibold">Sin resultados</h3>
+      <h3 className="mt-4 text-xl font-semibold">No results</h3>
       <p className="mt-1 text-white/80">
         {q ? (
           <>
-            No encontramos campañas que coincidan con <span className="font-semibold">“{q}”</span>.
+            We didn’t find campaigns matching <span className="font-semibold">“{q}”</span>.
           </>
         ) : (
-          'No hay campañas activas por ahora.'
+          'There are no active campaigns for now.'
         )}
       </p>
     </div>
@@ -374,5 +374,5 @@ function EmptyState({ q }: { q?: string }) {
 
 function safeDate(d: string) {
   const date = new Date(d)
-  return isNaN(date.getTime()) ? 'Fecha por definir' : date.toLocaleDateString()
+  return isNaN(date.getTime()) ? 'Date to be defined' : date.toLocaleDateString()
 }

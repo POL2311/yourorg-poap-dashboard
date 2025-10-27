@@ -20,12 +20,12 @@ function cx(...cls: (string | false | undefined)[]) {
 type Item = { href: string; label: string; icon: React.ComponentType<{ className?: string }> }
 
 const NAV_ITEMS: Item[] = [
-  { href: '/market',                 label: 'Mercado',   icon: BugPlayIcon },
+  { href: '/market',                 label: 'Market',   icon: BugPlayIcon },
   { href: '/dashboard',            label: 'Dashboard',   icon: LayoutGrid },
   { href: '/dashboard/analytics',  label: 'Analytics',   icon: BarChart3 },
-  { href: '/dashboard/campaigns',  label: 'Campañas',    icon: QrCode },
+  { href: '/dashboard/campaigns',  label: 'Campaigns',    icon: QrCode },
   { href: '/dashboard/api-keys',   label: 'API Keys',    icon: KeyRound },
-  { href: '/user',                 label: 'Mi Perfil',   icon: User2 },
+  { href: '/user',                 label: 'Profile',   icon: User2 },
 ]
 
 export default function LiquidSidebar() {
@@ -149,7 +149,7 @@ export default function LiquidSidebar() {
       {/* Footer pequeño */}
       <div className="absolute bottom-3 left-0 right-0 px-3">
         <div className="rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-[11px] text-white/70 text-center">
-          v1.0
+          v2.0
         </div>
       </div>
     </aside>

@@ -41,37 +41,37 @@ export function BadgeGallery({
 
   return (
     <div className="space-y-4">
-      {/* Header compacto */}
+      {/* Compact header */}
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-3">
-          <h3 className="text-xl font-semibold">Mis Insignias</h3>
+          <h3 className="text-xl font-semibold">My Badges</h3>
           <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-sm">
-            {unlockedCount} / {badges.length} desbloqueadas
+            {unlockedCount} / {badges.length} unlocked
           </span>
           {level && (
             <span className="inline-flex items-center gap-1 rounded-full border border-purple-400/30 bg-purple-400/10 px-3 py-1 text-sm text-purple-100">
               <Sparkles className="h-4 w-4" />
-              Nivel {level.level} · {level.name}
+              Level {level.level} · {level.name}
             </span>
           )}
         </div>
 
-        {/* Filtros */}
+        {/* Filters */}
         <div className="flex flex-wrap items-center gap-2">
           <FilterPill
             active={filter === 'all'}
             onClick={() => setFilter('all')}
-            label="Todas"
+            label="All"
           />
           <FilterPill
             active={filter === 'unlocked'}
             onClick={() => setFilter('unlocked')}
-            label="Desbloqueadas"
+            label="Unlocked"
           />
           <FilterPill
             active={filter === 'locked'}
             onClick={() => setFilter('locked')}
-            label="Bloqueadas"
+            label="Locked"
           />
           <div className="mx-1 h-6 w-px bg-white/15" />
           {['all', 'common', 'uncommon', 'rare', 'epic', 'legendary'].map(r => (
@@ -94,7 +94,7 @@ export function BadgeGallery({
 
         {filtered.length === 0 && (
           <div className="col-span-full grid place-items-center rounded-2xl border border-white/15 bg-white/5 p-10 text-white/70">
-            No hay insignias con esos filtros
+            No badges match those filters
           </div>
         )}
       </div>
@@ -102,7 +102,7 @@ export function BadgeGallery({
   )
 }
 
-/* ---------- subcomponentes ---------- */
+/* ---------- subcomponents ---------- */
 
 function FilterPill({
   label,
@@ -155,7 +155,7 @@ function BadgeCard({ badge }: { badge: any }) {
         'shadow-[inset_0_1px_0_rgba(255,255,255,.10),_0_20px_50px_rgba(0,0,0,.35)]'
       )}
     >
-      {/* Esquina superior derecha: estado / rareza */}
+      {/* Top-right corner: status / rarity */}
       <div className="absolute right-3 top-3 flex items-center gap-2">
         <span
           className={cn(
@@ -176,7 +176,7 @@ function BadgeCard({ badge }: { badge: any }) {
         )}
       </div>
 
-      {/* Imagen */}
+      {/* Image */}
       <div
         className={cn(
           'mx-auto mb-3 grid h-24 w-24 place-items-center rounded-full',
@@ -192,17 +192,17 @@ function BadgeCard({ badge }: { badge: any }) {
         )}
       </div>
 
-      {/* Título + descripción */}
+      {/* Title + description */}
       <div className="text-center">
         <h4 className="text-base font-semibold">{name}</h4>
         <p className="mt-1 line-clamp-2 text-sm text-white/70">{description}</p>
       </div>
 
-      {/* Progreso (solo si está bloqueado y tiene meta) */}
+      {/* Progress (only if locked and has target) */}
       {!unlocked && target > 0 && (
         <div className="mt-4">
           <div className="mb-1 flex items-center justify-between text-xs text-white/70">
-            <span>Progreso</span>
+            <span>Progress</span>
             <span>
               {progress}/{target}
             </span>
@@ -216,7 +216,7 @@ function BadgeCard({ badge }: { badge: any }) {
         </div>
       )}
 
-      {/* Glow de hover */}
+      {/* Hover glow */}
       <div
         className={cn(
           'pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300',
@@ -231,7 +231,7 @@ function BadgeCard({ badge }: { badge: any }) {
   )
 }
 
-/* ---------- estilos de rareza ---------- */
+/* ---------- rarity styles ---------- */
 
 const rarityStyles: Record<
   string,

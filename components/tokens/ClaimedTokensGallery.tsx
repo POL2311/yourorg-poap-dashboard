@@ -73,7 +73,7 @@ export default function ClaimedTokensGallery({
         {(totalCampaigns ?? totalMints) && (
           <div className="text-sm text-white/70">
             {typeof totalCampaigns === 'number' && (
-              <span className="mr-2">{totalCampaigns} campañas</span>
+              <span className="mr-2">{totalCampaigns} campaigns</span>
             )}
             {typeof totalMints === 'number' && <span>· total {totalMints}</span>}
           </div>
@@ -154,11 +154,11 @@ function TokenBadgeRound({ item }: { item: ClaimedTokenItem }) {
       {/* chips */}
       <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
         <span className="rounded-full border border-white/15 bg-white/8 px-3 py-1 text-xs text-white/80">
-          {accounts} cuenta(s)
+          {accounts} account(s)
         </span>
         <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/30 bg-emerald-400/15 px-3 py-1 text-xs text-emerald-100">
           <CheckCircle2 className="h-3.5 w-3.5" />
-          Reclamado
+          claimed
         </span>
         {typeof claimsTotal === 'number' && (
           <span className="rounded-full border border-sky-400/30 bg-sky-400/15 px-3 py-1 text-xs text-sky-100">

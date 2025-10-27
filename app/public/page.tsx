@@ -12,7 +12,7 @@ import {
 } from 'lucide-react'
 import LiquidNavbar from '@/components/ui/LiquidNavbar'
 
-/* ------- subcomponentes ------- */
+/* ------- Subcomponents ------- */
 function GlassCard({
   icon, title, desc, compact,
 }: { icon: React.ReactNode; title: string; desc: string; compact?: boolean }) {
@@ -58,7 +58,7 @@ function PriceCard({
     }`}>
       <CardHeader className="p-0 mb-4">
         <CardTitle className="text-xl">{plan}</CardTitle>
-        <CardDescription className="text-white/80">{highlight ? 'Más popular' : 'Empieza cuando quieras'}</CardDescription>
+        <CardDescription className="text-white/80">{highlight ? 'Most popular' : 'Start whenever you want'}</CardDescription>
       </CardHeader>
       <div className="text-4xl font-semibold">{price}{suffix && <span className="text-base font-normal opacity-80"> {suffix}</span>}</div>
       <CardContent className="p-0 mt-4">
@@ -71,7 +71,7 @@ function PriceCard({
         </ul>
         <Link href="/register">
           <Button className={`mt-5 w-full rounded-full ${highlight ? 'bg-indigo-500 hover:bg-indigo-600' : 'bg-white/20 hover:bg-white/30 border border-white/25'}`}>
-            Empezar
+            Get Started
           </Button>
         </Link>
       </CardContent>
@@ -79,7 +79,7 @@ function PriceCard({
   )
 }
 
-/* ------- página ------- */
+/* ------- Page ------- */
 export default function HomePage() {
   const { isAuthenticated } = useAuth()
   const router = useRouter()
@@ -91,55 +91,50 @@ export default function HomePage() {
   if (isAuthenticated) return null
 
   return (
-    // FONDO: gradiente “liquid” general
+    // LIQUID background gradient
     <div
       className="min-h-screen text-white"
       style={{
         background: 'linear-gradient(160deg,#4a5a83 0%, #4b5577 40%, #66597c 100%)',
       }}
     >
-      {/* Navbar pill estilo Abstract */}
+      {/* Navbar */}
       <LiquidNavbar />
 
-      {/* HERO (un poco más de padding arriba por el navbar sticky) */}
+      {/* HERO */}
       <section className="container mx-auto px-4 pt-16 pb-10">
         <div className="mx-auto max-w-4xl text-center">
           <Badge variant="secondary" className="mb-4 bg-white/10 text-white border-white/20 backdrop-blur">
-            First Platform of Poap on SOLANA
+            First POAP Platform on SOLANA
           </Badge>
-
         </div>
 
-        {/* Panel del hero, sin “caja” central; sólo controles y CTAs */}
-<div className="relative mx-auto mt-10 w-full max-w-6xl">
-  <div className="liquid-panel relative h-[250px] w-full overflow-hidden p-5 md:p-7">
-    {/* Fondo/efectos irían aquí con z-index menor si los usas */}
-    <div className="relative z-10 flex h-full w-full flex-col items-center justify-center gap-3 text-center">
-      <h1 className="text-4xl md:text-5xl font-semibold leading-tight">
-        First POAP Platform <br />
-        <span className="text-indigo-300">on Solana</span>
-      </h1>
+        <div className="relative mx-auto mt-10 w-full max-w-6xl">
+          <div className="liquid-panel relative h-[250px] w-full overflow-hidden p-5 md:p-7">
+            <div className="relative z-10 flex h-full w-full flex-col items-center justify-center gap-3 text-center">
+              <h1 className="text-4xl md:text-5xl font-semibold leading-tight">
+                First POAP Platform <br />
+                <span className="text-indigo-300">on Solana</span>
+              </h1>
 
-      <p className="mx-auto max-w-2xl text-lg text-white/85">
-        Crea campañas y permite reclamar sin gas. Velocidad, escala y una UI líquida.
-      </p>
+              <p className="mx-auto max-w-2xl text-lg text-white/85">
+                Create campaigns and let your community claim gasless. Speed, scale and a liquid UI.
+              </p>
 
-      <div className="mt-2 flex flex-wrap items-center justify-center gap-3">
-        {/* Tus CTAs */}
-        <Link href="/market">
-            <Button variant="secondary">Gallery of Poaps</Button>
-        </Link>
-      </div>
-    </div>
-  </div>
-</div>
-
+              <div className="mt-2 flex flex-wrap items-center justify-center gap-3">
+                <Link href="/market">
+                  <Button variant="secondary">POAP Gallery</Button>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* Social proof */}
       <section className="container mx-auto px-4 pb-6">
         <div className="flex items-center justify-center gap-8 opacity-70 text-xs">
-          <span>Usado por</span>
+          <span>Used by</span>
           <div className="flex items-center gap-5">
             <div className="h-5 w-20 rounded bg-white/10 border border-white/15" />
             <div className="h-5 w-20 rounded bg-white/10 border border-white/15" />
@@ -152,23 +147,23 @@ export default function HomePage() {
       {/* How it works */}
       <section className="container mx-auto px-4 py-10">
         <div className="text-center mb-8">
-          <h2 className="text-3xl font-semibold">¿Cómo funciona?</h2>
+          <h2 className="text-3xl font-semibold">How it works</h2>
         </div>
         <div className="grid md:grid-cols-3 gap-6">
           <GlassCard
             icon={<Sparkles className="h-10 w-10 text-indigo-300" />}
-            title="Crea una campaña"
-            desc="Define arte, supply, fecha y reglas de reclamo."
+            title="Create a campaign"
+            desc="Set artwork, supply, date and claim rules."
           />
           <GlassCard
             icon={<QrCode className="h-10 w-10 text-purple-300" />}
-            title="Comparte QR / link"
-            desc="Colócalo en tu evento o compártelo con tu comunidad."
+            title="Share QR / link"
+            desc="Display it at your event or share it with your community."
           />
           <GlassCard
             icon={<Gauge className="h-10 w-10 text-emerald-300" />}
-            title="Reclamo sin gas + analytics"
-            desc="Tus asistentes reclaman sin gas; tú ves todo en tiempo real."
+            title="Gasless claim + analytics"
+            desc="Attendees claim without gas; you see everything in real time."
           />
         </div>
       </section>
@@ -182,11 +177,11 @@ export default function HomePage() {
                 <QrCode className="h-10 w-10 text-white/80" />
               </div>
               <div className="flex-1">
-                <h3 className="text-2xl font-semibold">Prueba un POAP demo</h3>
-                <p className="text-white/85 mt-1">Escanea o abre el link y reclama un cNFT de muestra.</p>
+                <h3 className="text-2xl font-semibold">Try a demo POAP</h3>
+                <p className="text-white/85 mt-1">Scan or open the link and claim a sample cNFT.</p>
                 <div className="mt-4 flex gap-3">
-                  <Link href="/dashboard" className="btn-soft">Abrir demo</Link>
-                  <Link href="/market" className="btn-soft">Ver campañas</Link>
+                  <Link href="/dashboard" className="btn-soft">Open demo</Link>
+                  <Link href="/market" className="btn-soft">View campaigns</Link>
                 </div>
               </div>
             </div>
@@ -195,7 +190,7 @@ export default function HomePage() {
           <GlassCard
             icon={<Shield className="h-10 w-10 text-green-300" />}
             title="Gasless Minting"
-            desc="Cubrimos el gas con relayers y límites anti-abuso. Soporte cNFT (Helius/DAS)."
+            desc="We cover gas with relayers and anti-abuse limits. cNFT support (Helius/DAS)."
             compact
           />
         </div>
@@ -204,53 +199,53 @@ export default function HomePage() {
       {/* Features */}
       <section className="container mx-auto px-4 py-12">
         <div className="text-center mb-8">
-<h2 className="text-3xl font-semibold tracking-tight drop-shadow-[0_2px_8px_rgba(0,0,0,.35)]">
-  Todo lo que necesitas
-</h2>
+          <h2 className="text-3xl font-semibold tracking-tight drop-shadow-[0_2px_8px_rgba(0,0,0,.35)]">
+            Everything you need
+          </h2>
         </div>
-  <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
-          <LiquidFeature icon={<Users className="h-9 w-9 text-purple-300" />} title="Multi-tenant" desc="Espacios por organizador con roles y API keys." />
-          <LiquidFeature icon={<Coins className="h-9 w-9 text-yellow-300" />} title="Analytics en vivo" desc="Claims, usuarios únicos, tasa de éxito." />
-          <LiquidFeature icon={<CheckCircle className="h-9 w-9 text-sky-300" />} title="Embeds & Widgets" desc="Agrega el reclamo a tu web con un snippet." />
-          <LiquidFeature icon={<Shield className="h-9 w-9 text-emerald-300" />} title="Escalable y seguro" desc="Solana mainnet/devnet, mejores prácticas." />
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
+          <LiquidFeature icon={<Users className="h-9 w-9 text-purple-300" />} title="Multi-tenant" desc="Spaces per organizer with roles and API keys." />
+          <LiquidFeature icon={<Coins className="h-9 w-9 text-yellow-300" />} title="Live Analytics" desc="Claims, unique users, success rate." />
+          <LiquidFeature icon={<CheckCircle className="h-9 w-9 text-sky-300" />} title="Embeds & Widgets" desc="Add claim widget to your website with a snippet." />
+          <LiquidFeature icon={<Shield className="h-9 w-9 text-emerald-300" />} title="Scalable & Secure" desc="Solana mainnet/devnet, best practices." />
         </div>
       </section>
 
       {/* Pricing */}
       <section className="container mx-auto px-4 py-12">
         <div className="text-center mb-8">
-          <h2 className="text-3xl font-semibold">Precios simples y claros</h2>
+          <h2 className="text-3xl font-semibold">Simple and clear pricing</h2>
         </div>
         <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
           <PriceCard
             plan="Free"
             price="$0"
-            items={['3 campañas', '100 claims/mes', '2 API keys', 'Analytics básico']}
+            items={['3 campaigns', '100 claims/month', '2 API keys', 'Basic analytics']}
           />
           <PriceCard
             highlight
             plan="Pro"
             price="$49"
-            suffix="/mes"
-            items={['50 campañas', '5,000 claims/mes', '10 API keys', 'Analytics avanzado', 'Soporte prioritario']}
+            suffix="/month"
+            items={['50 campaigns', '5,000 claims/month', '10 API keys', 'Advanced analytics', 'Priority support']}
           />
           <PriceCard
             plan="Enterprise"
             price="Custom"
-            items={['Ilimitado', '50,000+ claims/mes', 'White-label', 'Soporte dedicado']}
+            items={['Unlimited', '50,000+ claims/month', 'White-label', 'Dedicated support']}
           />
         </div>
       </section>
 
-      {/* CTA final */}
+      {/* Final CTA */}
       <section className="py-12">
         <div className="container mx-auto px-4">
           <div className="rounded-2xl border border-white/20 bg-white/10 backdrop-blur-xl p-8 text-center shadow-2xl">
-            <h3 className="text-2xl font-semibold">¿Listo para tu primera campaña?</h3>
-            <p className="text-white/85 mt-1">Únete como organizador o empieza gratis.</p>
+            <h3 className="text-2xl font-semibold">Ready for your first campaign?</h3>
+            <p className="text-white/85 mt-1">Join as an organizer or get started for free.</p>
             <div className="mt-5 flex items-center justify-center gap-3">
-              <Link href="/login" className="btn-soft">Únete como Organizador</Link>
-              <Link href="/register" className="btn-soft">Empezar Gratis</Link>
+              <Link href="/login" className="btn-soft">Join as Organizer</Link>
+              <Link href="/register" className="btn-soft">Get Started Free</Link>
             </div>
           </div>
         </div>
@@ -263,7 +258,7 @@ export default function HomePage() {
             <Zap className="h-5 w-5" />
             <span className="font-medium">SoPoap</span>
           </div>
-          <div className="text-sm">Built on Solana By SoPoap -! {new Date().getFullYear()}</div>
+          <div className="text-sm">Built on Solana by SoPoap - {new Date().getFullYear()}</div>
         </div>
       </footer>
     </div>

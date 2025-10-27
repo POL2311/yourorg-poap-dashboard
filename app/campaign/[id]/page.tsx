@@ -1,5 +1,5 @@
 'use client'
-import MarketNavbar from '@/components/ui/MarketNavbar' // navbar especial del market
+import MarketNavbar from '@/components/ui/MarketNavbar' // special market navbar
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
@@ -24,7 +24,7 @@ import {
 
 import { useWalletConnection } from '@/hooks/use-wallet'
 
-/* -------------------- Tipos -------------------- */
+/* -------------------- Types -------------------- */
 type PublicCampaign = {
   id: string
   name: string
@@ -41,7 +41,7 @@ type PublicCampaign = {
   requiresSecret?: boolean | null
 }
 
-/* -------------------- Página -------------------- */
+/* -------------------- Page -------------------- */
 export default function PublicCampaignPage({ params }: { params: { id: string } }) {
   const pathname = usePathname()
   const origin = typeof window !== 'undefined' ? window.location.origin : ''
@@ -70,13 +70,13 @@ export default function PublicCampaignPage({ params }: { params: { id: string } 
         setLoading(true)
         const r = await fetch(`/api/campaigns/${params.id}/public`, { signal: ac.signal })
         if (!r.ok) {
-          setErr(r.status === 404 ? 'Campaña no encontrada' : `Error ${r.status}`)
+          setErr(r.status === 404 ? 'Campaign not found' : `Error ${r.status}`)
           return
         }
         const json = await r.json()
         setCampaign(json?.data ?? json)
       } catch (e: any) {
-        if (e.name !== 'AbortError') setErr('No pudimos cargar la campaña.')
+        if (e.name !== 'AbortError') setErr('We couldn’t load the campaign.')
       } finally {
         setLoading(false)
       }
@@ -99,9 +99,9 @@ export default function PublicCampaignPage({ params }: { params: { id: string } 
 
   const statusText = useMemo(() => {
     if (!campaign) return ''
-    if (!campaign.isActive) return 'Inactiva'
-    if (remaining !== null && remaining <= 0) return 'Agotada'
-    return 'Activa'
+    if (!campaign.isActive) return 'Inactive'
+    if (remaining !== null && remaining <= 0) return 'Sold out'
+    return 'Active'
   }, [campaign, remaining])
 
   const canClaim = useMemo(() => {
@@ -114,17 +114,17 @@ export default function PublicCampaignPage({ params }: { params: { id: string } 
   const copyShare = async () => {
     try {
       await navigator.clipboard.writeText(shareUrl)
-      toast.success('Enlace copiado')
+      toast.success('Link copied')
     } catch {
-      toast.error('No se pudo copiar')
+      toast.error('Couldn’t copy')
     }
   }
 
   const onClaim = async () => {
     if (!campaign) return
-    if (!connected || !userPublicKey) { toast.error('Conecta tu wallet primero'); return }
+    if (!connected || !userPublicKey) { toast.error('Connect your wallet first'); return }
     if (campaign.requiresSecret && !secretCode.trim()) {
-      toast.error('Esta campaña requiere código secreto'); return
+      toast.error('This campaign requires a secret code'); return
     }
     try {
       setClaiming(true)
@@ -134,10 +134,10 @@ export default function PublicCampaignPage({ params }: { params: { id: string } 
         body: JSON.stringify({ userPublicKey, campaignId: campaign.id, secretCode: secretCode || undefined }),
       })
       const json = await res.json().catch(() => ({}))
-      if (!res.ok || json?.success === false) throw new Error(json?.message || 'No se pudo reclamar')
-      toast.success('¡POAP reclamado!')
+      if (!res.ok || json?.success === false) throw new Error(json?.message || 'It couldn’t be claimed or you already claimed it.')
+      toast.success('!POAP claimed!')
     } catch (e: any) {
-      toast.error(e?.message || 'Error al reclamar')
+      toast.error(e?.message || 'Error claiming')
     } finally {
       setClaiming(false)
     }
@@ -158,9 +158,9 @@ export default function PublicCampaignPage({ params }: { params: { id: string } 
     return (
       <div className="mx-auto max-w-6xl p-6 text-white">
         <div className="rounded-3xl border border-white/15 bg-white/10 p-8 text-center">
-          <h2 className="text-xl font-semibold mb-2">No pudimos mostrar la campaña</h2>
-          <p className="text-white/70">{err ?? 'Campaña no encontrada.'}</p>
-          <div className="mt-6"><Link href="/market" className="underline">Volver al market</Link></div>
+          <h2 className="text-xl font-semibold mb-2">We couldn’t display the campaign</h2>
+          <p className="text-white/70">{err ?? 'Campaign not found.'}</p>
+          <div className="mt-6"><Link href="/market" className="underline">Back to market</Link></div>
         </div>
       </div>
     )
@@ -172,7 +172,7 @@ export default function PublicCampaignPage({ params }: { params: { id: string } 
       {/* top actions */}
       <div className="mb-3 flex items-center justify-end gap-2">
         <Button onClick={copyShare} variant="outline" className="rounded-full border-white/15 bg-white/10 text-white hover:bg-white/15">
-          <Copy className="mr-2 h-4 w-4" /> Copiar enlace
+          <Copy className="mr-2 h-4 w-4" /> Copy link
         </Button>
         {connected && (
           <div className="rounded-xl bg-[#6d4aff] px-4 py-2 text-sm font-semibold">
@@ -210,7 +210,7 @@ export default function PublicCampaignPage({ params }: { params: { id: string } 
                     rel="noreferrer"
                     className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/10 px-3 py-1.5 text-sm hover:bg-white/15"
                   >
-                    <span>Visitar sitio del evento</span>
+                    <span>Visit event site</span>
                     <ExternalLink className="h-4 w-4" />
                   </a>
                 )}
@@ -225,7 +225,7 @@ export default function PublicCampaignPage({ params }: { params: { id: string } 
               icon={<Users className="h-4 w-4" />}
               text={
                 campaign.maxClaims
-                  ? `${Number(campaign.totalClaims || 0)} / ${campaign.maxClaims} · restan ${remaining ?? '∞'}`
+                  ? `${Number(campaign.totalClaims || 0)} / ${campaign.maxClaims} · remaining ${remaining ?? '∞'}`
                   : `${Number(campaign.totalClaims || 0)} claims`
               }
             />
@@ -235,9 +235,9 @@ export default function PublicCampaignPage({ params }: { params: { id: string } 
 
       {/* Claim card */}
       <div className="mt-6 rounded-[28px] border border-white/12 bg-white/[0.06] p-6 backdrop-blur-xl">
-        <h3 className="text-center text-xl font-semibold">Reclama tu POAP</h3>
+        <h3 className="text-center text-xl font-semibold">Claim your POAP</h3>
         <p className="mt-1 text-center text-white/70 text-sm">
-          Conecta tu wallet y reclama tu prueba de asistencia (costo 0)
+          Connect your wallet and claim your proof of attendance (free)
         </p>
 
         <div className="mx-auto mt-6 max-w-3xl space-y-4">
@@ -250,17 +250,17 @@ export default function PublicCampaignPage({ params }: { params: { id: string } 
                   className="w-full rounded-xl border border-white/15 bg-white/10 text-white hover:bg-white/15"
                 >
                   {connecting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <WalletIcon className="mr-2 h-4 w-4" />}
-                  {connecting ? 'Conectando…' : 'Conectar wallet'}
+                  {connecting ? 'Connecting…' : 'Connect wallet'}
                 </Button>
               ) : (
                 <div className="flex flex-col gap-2 sm:flex-row">
                   <a href="https://phantom.app/download" target="_blank" rel="noreferrer"
                      className="w-full rounded-xl border border-white/15 bg-white/10 px-4 py-2.5 text-center text-sm hover:bg-white/15">
-                    Instalar Phantom
+                    Install Phantom
                   </a>
                   <a href="https://solflare.com/download" target="_blank" rel="noreferrer"
                      className="w-full rounded-xl border border-white/15 bg-white/10 px-4 py-2.5 text-center text-sm hover:bg-white/15">
-                    Instalar Solflare
+                    Install Solflare
                   </a>
                 </div>
               )}
@@ -268,7 +268,7 @@ export default function PublicCampaignPage({ params }: { params: { id: string } 
           ) : (
             <>
               {/* Wallet */}
-              <label className="block text-sm text-white/70">Wallet conectada</label>
+              <label className="block text-sm text-white/70">Connected wallet</label>
               <div className="rounded-xl border border-white/12 bg-white/10 px-4 py-3 font-mono">
                 {userPublicKey}
               </div>
@@ -277,14 +277,14 @@ export default function PublicCampaignPage({ params }: { params: { id: string } 
               <div>
                 <div className="flex items-center justify-between">
                   <label className="block text-sm text-white/70">
-                    Código Secreto
-                    {campaign.requiresSecret ? <span className="ml-1 text-rose-300">*</span> : <span className="ml-1 opacity-60">(opcional)</span>}
+                    Secret Code
+                    {campaign.requiresSecret ? <span className="ml-1 text-rose-300">*</span> : <span className="ml-1 opacity-60">(optional)</span>}
                   </label>
                 </div>
                 <input
                   value={secretCode}
                   onChange={(e) => setSecretCode(e.target.value)}
-                  placeholder={campaign.requiresSecret ? 'Ingresa el código de esta campaña' : 'Opcional'}
+                  placeholder={campaign.requiresSecret ? 'Enter this campaign’s code' : 'Optional'}
                   className="mt-1 w-full rounded-xl border border-white/12 bg-white/10 px-4 py-2.5 outline-none"
                 />
               </div>
@@ -296,13 +296,13 @@ export default function PublicCampaignPage({ params }: { params: { id: string } 
                 className="mt-1 w-full rounded-xl border border-emerald-500/30 bg-emerald-500/20 text-emerald-100 hover:bg-emerald-500/30"
               >
                 {claiming ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Zap className="mr-2 h-4 w-4" />}
-                {claiming ? 'Reclamando…' : '⚡ Claim POAP (Free)'}
+                {claiming ? 'Claiming…' : '⚡ Claim POAP (Free)'}
               </Button>
 
               {/* legend */}
               <div className="mt-2 text-center text-sm text-white/70">
                 <span className="inline-flex items-center gap-1">
-                  <span className="inline-block h-3.5 w-3.5 rounded-sm border border-white/20" /> Gasless mint en Solana
+                  <span className="inline-block h-3.5 w-3.5 rounded-sm border border-white/20" /> Gasless mint on Solana
                 </span>
               </div>
 
@@ -316,7 +316,7 @@ export default function PublicCampaignPage({ params }: { params: { id: string } 
                     />
                   </div>
                   <div className="mt-2 text-center text-sm text-white/70">
-                    Quedan {remaining ?? '∞'} POAP(s)
+                    {remaining ?? '∞'} POAP(s) left
                   </div>
                 </>
               ) : null}
@@ -327,7 +327,7 @@ export default function PublicCampaignPage({ params }: { params: { id: string } 
                 variant="outline"
                 className="mt-3 w-full rounded-xl border-white/15 bg-white/5 text-white hover:bg-white/10"
               >
-                Desconectar
+                Disconnect
               </Button>
             </>
           )}
@@ -337,7 +337,7 @@ export default function PublicCampaignPage({ params }: { params: { id: string } 
   )
 }
 
-/* -------------------- Helpers UI -------------------- */
+/* -------------------- UI Helpers -------------------- */
 function Chip({ icon, text }: { icon: React.ReactNode; text: React.ReactNode }) {
   return (
     <div className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/8 px-3 py-2 text-sm">

@@ -17,12 +17,12 @@ function cx(...cls: (string | false | undefined)[]) {
 type Item = { href: string; label: string; icon: React.ComponentType<{ className?: string }> }
 
 const NAV_ITEMS: Item[] = [
-  { href: '/market',                 label: 'Mercado',   icon: User2 },
+  { href: '/market',                 label: 'Market',   icon: User2 },
   { href: '/dashboard',            label: 'Dashboard',   icon: LayoutGrid },
   { href: '/dashboard/analytics',  label: 'Analytics',   icon: BarChart3 },
-  { href: '/dashboard/campaigns',  label: 'Campañas',    icon: QrCode },
+  { href: '/dashboard/campaigns',  label: 'Campaigns',    icon: QrCode },
   { href: '/dashboard/api-keys',   label: 'API Keys',    icon: KeyRound },
-  { href: '/user',                 label: 'Mi Perfil',   icon: User2 },
+  { href: '/user',                 label: 'Profile',   icon: User2 },
 ]
 
 export default function LiquidSidebar() {
