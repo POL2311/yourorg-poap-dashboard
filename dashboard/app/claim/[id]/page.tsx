@@ -1,532 +1,359 @@
 'use client'
+import MarketNavbar from '@/components/ui/MarketNavbar' // navbar especial del market
 
-import { useState, useEffect, useCallback } from 'react'
-import { useWallet } from '@solana/wallet-adapter-react'
-import { WalletMultiButton } from '@solana/wallet-adapter-react-ui'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Separator } from '@/components/ui/separator'
-import { Calendar, MapPin, Users, ExternalLink, CheckCircle, AlertTriangle, Loader2, Copy, Zap, X, Check, Info } from 'lucide-react'
-import { formatDate, formatNumber } from '@/lib/utils'
-import { apiClient } from '@/lib/api'
-import type { PublicCampaign } from '@/lib/types'
-import { toast } from 'react-hot-toast'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import { toast } from 'react-hot-toast'
 
-interface ClaimPageProps {
-  params: { id: string }
+import { Card, CardContent } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+
+import {
+  CalendarDays,
+  MapPin,
+  Users,
+  ExternalLink,
+  Copy,
+  Wallet as WalletIcon,
+  Loader2,
+  Zap,
+  QrCode,
+} from 'lucide-react'
+
+import { useWalletConnection } from '@/hooks/use-wallet'
+
+/* -------------------- Tipos -------------------- */
+type PublicCampaign = {
+  id: string
+  name: string
+  description?: string | null
+  imageUrl?: string | null
+  externalUrl?: string | null
+  eventDate?: string | null
+  location?: string | null
+  isActive: boolean
+  maxClaims?: number | null
+  totalClaims?: number
+  claimsRemaining?: number | null
+  organizer?: { id: string; name: string; company?: string | null } | null
+  requiresSecret?: boolean | null
 }
 
-interface ClaimState {
-  status: 'idle' | 'loading' | 'success' | 'error'
-  error?: string
-  result?: {
-    message: string
-    nft: { mint: string; transactionSignature: string }
-    explorerUrl: string
-  }
-}
+/* -------------------- Página -------------------- */
+export default function PublicCampaignPage({ params }: { params: { id: string } }) {
+  const pathname = usePathname()
+  const origin = typeof window !== 'undefined' ? window.location.origin : ''
+  const shareUrl = `${origin}${pathname}`
 
-interface CodeValidationState {
-  status: 'idle' | 'validating' | 'valid' | 'invalid' | 'unknown'
-  message?: string
-  requiresCode?: boolean
-}
+  const {
+    connected,
+    connecting,
+    isWalletAvailable,
+    connect,
+    disconnect,
+    userPublicKey,
+  } = useWalletConnection()
 
-export default function ClaimPage({ params }: ClaimPageProps) {
-  const { publicKey, connected } = useWallet()
-  const [campaign, setCampaign] = useState<PublicCampaign | null>(null)
   const [loading, setLoading] = useState(true)
+  const [err, setErr] = useState<string | null>(null)
+  const [campaign, setCampaign] = useState<PublicCampaign | null>(null)
+
   const [secretCode, setSecretCode] = useState('')
-  const [claimState, setClaimState] = useState<ClaimState>({ status: 'idle' })
-  const [codeValidation, setCodeValidation] = useState<CodeValidationState>({ status: 'idle' })
+  const [claiming, setClaiming] = useState(false)
 
   useEffect(() => {
-    (async () => {
+    const ac = new AbortController()
+    ;(async () => {
       try {
-        const response = await apiClient.getPublicCampaign(params.id)
-        if (response.success && response.data) setCampaign(response.data)
-        else setClaimState({ status: 'error', error: 'Campaign not found or inactive' })
-      } catch {
-        setClaimState({ status: 'error', error: 'Failed to load campaign' })
+        setLoading(true)
+        const r = await fetch(`/api/campaigns/${params.id}/public`, { signal: ac.signal })
+        if (!r.ok) {
+          setErr(r.status === 404 ? 'Campaña no encontrada' : `Error ${r.status}`)
+          return
+        }
+        const json = await r.json()
+        setCampaign(json?.data ?? json)
+      } catch (e: any) {
+        if (e.name !== 'AbortError') setErr('No pudimos cargar la campaña.')
       } finally {
         setLoading(false)
       }
     })()
+    return () => ac.abort()
   }, [params.id])
 
-  // Debounced code validation
-  const validateCode = useCallback(async (code: string) => {
-    if (!code.trim()) {
-      setCodeValidation({ status: 'idle' })
-      return
-    }
+  const remaining = useMemo(() => {
+    if (typeof campaign?.claimsRemaining === 'number') return Math.max(0, campaign.claimsRemaining!)
+    if (!campaign?.maxClaims) return null
+    const total = Number(campaign?.totalClaims || 0)
+    return Math.max(0, campaign.maxClaims - total)
+  }, [campaign])
 
-    // If campaign doesn't require a secret code, mark as valid
-    if (!campaign?.secretCode) {
-      setCodeValidation({ 
-        status: 'valid', 
-        message: 'No code required for this campaign',
-        requiresCode: false 
-      })
-      return
-    }
+  const progressPct = useMemo(() => {
+    if (!campaign?.maxClaims) return 0
+    const total = Number(campaign.totalClaims || 0)
+    return Math.min(100, (total / campaign.maxClaims) * 100)
+  }, [campaign])
 
-    setCodeValidation({ status: 'validating' })
+  const statusText = useMemo(() => {
+    if (!campaign) return ''
+    if (!campaign.isActive) return 'Inactiva'
+    if (remaining !== null && remaining <= 0) return 'Agotada'
+    return 'Activa'
+  }, [campaign, remaining])
 
-    try {
-      const response = await fetch(`/api/validate-code/${params.id}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ secretCode: code }),
-      })
-
-      const data = await response.json()
-
-      if (data.success) {
-        setCodeValidation({
-          status: data.data.isValid ? 'valid' : 'invalid',
-          message: data.data.message,
-          requiresCode: data.data.requiresCode
-        })
-      } else {
-        setCodeValidation({
-          status: 'unknown',
-          message: 'Code validation unavailable - will be checked during claim'
-        })
-      }
-    } catch (error) {
-      setCodeValidation({
-        status: 'unknown',
-        message: 'Code validation unavailable - will be checked during claim'
-      })
-    }
-  }, [params.id, campaign?.secretCode])
-
-  // Debounce the validation
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      validateCode(secretCode)
-    }, 500) // 500ms delay
-
-    return () => clearTimeout(timeoutId)
-  }, [secretCode, validateCode])
-
-  const handleClaim = async () => {
-    if (!connected || !publicKey) {
-      toast.error('Please connect your wallet first')
-      return
-    }
-
-    if (campaign?.secretCode && !secretCode) {
-      toast.error('Please enter the secret code')
-      return
-    }
-
-    // Only block if we know for sure the code is invalid
-    if (campaign?.secretCode && codeValidation.status === 'invalid') {
-      toast.error('Please enter a valid secret code')
-      return
-    }
-
-    setClaimState({ status: 'loading' })
-
-    try {
-      // Use the Next.js API route to proxy the claim
-      const response = await fetch(`/api/claim/${params.id}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userPublicKey: publicKey.toString(),
-          secretCode: secretCode || undefined,
-        }),
-      })
-
-      const data = await response.json()
-
-      if (data.success) {
-        setClaimState({
-          status: 'success',
-          result: {
-            message: data.data.message,
-            nft: data.data.nft,
-            explorerUrl: data.data.explorerUrl,
-          }
-        })
-        toast.success('POAP claimed successfully!')
-      } else {
-        setClaimState({
-          status: 'error',
-          error: data.error || 'Failed to claim POAP'
-        })
-        toast.error(data.error || 'Failed to claim POAP')
-      }
-    } catch (error) {
-      setClaimState({
-        status: 'error',
-        error: 'Network error. Please try again.'
-      })
-      toast.error('Network error. Please try again.')
-    }
-  }
-
-  const copyClaimUrl = () => {
-    navigator.clipboard.writeText(window.location.href)
-    toast.success('Claim URL copied to clipboard!')
-  }
-
-  // Check if claim button should be enabled
-  const isClaimButtonEnabled = () => {
-    if (!connected || !campaign?.isActive || claimState.status === 'loading') {
-      return false
-    }
-    
-    // If campaign requires secret code
-    if (campaign.secretCode) {
-      // Allow if code is valid or validation is unknown (will be checked server-side)
-      return codeValidation.status === 'valid' || codeValidation.status === 'unknown'
-    }
-    
+  const canClaim = useMemo(() => {
+    if (!campaign) return false
+    if (!campaign.isActive) return false
+    if (remaining !== null && remaining <= 0) return false
     return true
-  }
+  }, [campaign, remaining])
 
-  const getCodeValidationIcon = () => {
-    switch (codeValidation.status) {
-      case 'validating':
-        return <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
-      case 'valid':
-        return <Check className="h-4 w-4 text-green-500" />
-      case 'invalid':
-        return <X className="h-4 w-4 text-red-500" />
-      case 'unknown':
-        return <Info className="h-4 w-4 text-blue-500" />
-      default:
-        return null
+  const copyShare = async () => {
+    try {
+      await navigator.clipboard.writeText(shareUrl)
+      toast.success('Enlace copiado')
+    } catch {
+      toast.error('No se pudo copiar')
     }
   }
 
-  const getCodeInputBorderColor = () => {
-    switch (codeValidation.status) {
-      case 'valid':
-        return 'border-green-500 focus:border-green-500 focus:ring-green-500'
-      case 'invalid':
-        return 'border-red-500 focus:border-red-500 focus:ring-red-500'
-      case 'unknown':
-        return 'border-blue-500 focus:border-blue-500 focus:ring-blue-500'
-      default:
-        return ''
+  const onClaim = async () => {
+    if (!campaign) return
+    if (!connected || !userPublicKey) { toast.error('Conecta tu wallet primero'); return }
+    if (campaign.requiresSecret && !secretCode.trim()) {
+      toast.error('Esta campaña requiere código secreto'); return
+    }
+    try {
+      setClaiming(true)
+      const res = await fetch('/api/poap/claim', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userPublicKey, campaignId: campaign.id, secretCode: secretCode || undefined }),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok || json?.success === false) throw new Error(json?.message || 'No se pudo reclamar')
+      toast.success('¡POAP reclamado!')
+    } catch (e: any) {
+      toast.error(e?.message || 'Error al reclamar')
+    } finally {
+      setClaiming(false)
     }
   }
 
-  const getValidationMessage = () => {
-    if (!campaign?.secretCode) return null
-    
-    switch (codeValidation.status) {
-      case 'invalid':
-        return (
-          <p className="text-xs text-red-600">
-            {codeValidation.message}
-          </p>
-        )
-      case 'valid':
-        return (
-          <p className="text-xs text-green-600">
-            {codeValidation.message}
-          </p>
-        )
-      case 'unknown':
-        return (
-          <p className="text-xs text-blue-600">
-            {codeValidation.message}
-          </p>
-        )
-      default:
-        return (
-          <p className="text-xs text-gray-500">
-            This code was provided by the event organizer
-          </p>
-        )
-    }
-  }
-
+  /* -------------------- UI -------------------- */
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading campaign...</p>
+      <div className="mx-auto max-w-6xl p-6">
+        <div className="grid place-items-center h-72 rounded-3xl border border-white/10 bg-white/5 text-white/80">
+          <Loader2 className="h-6 w-6 animate-spin" /> 
         </div>
       </div>
     )
   }
 
-  if (claimState.status === 'error' && !campaign) {
+  if (err || !campaign) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <AlertTriangle className="mx-auto h-12 w-12 text-red-500 mb-4" />
-            <CardTitle>Campaign Not Found</CardTitle>
-            <CardDescription>
-              The POAP campaign you're looking for doesn't exist or is no longer active.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="text-center">
-            <p className="text-sm text-gray-600 mb-4">
-              {claimState.error}
-            </p>
-            <Link href="/">
-              <Button>Go Home</Button>
-            </Link>
-          </CardContent>
-        </Card>
+      <div className="mx-auto max-w-6xl p-6 text-white">
+        <div className="rounded-3xl border border-white/15 bg-white/10 p-8 text-center">
+          <h2 className="text-xl font-semibold mb-2">No pudimos mostrar la campaña</h2>
+          <p className="text-white/70">{err ?? 'Campaña no encontrada.'}</p>
+          <div className="mt-6"><Link href="/market" className="underline">Volver al market</Link></div>
+        </div>
       </div>
     )
   }
-
-  if (!campaign) return null
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50">
-      {/* Header */}
-      <header className="border-b bg-white/80 backdrop-blur-sm">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <Zap className="h-8 w-8 text-indigo-600" />
-            <span className="text-xl font-bold text-white">POAP Claim</span>
+    
+    <div className="mx-auto max-w-6xl p-6 text-white">
+      {/* top actions */}
+      <div className="mb-3 flex items-center justify-end gap-2">
+        <Button onClick={copyShare} variant="outline" className="rounded-full border-white/15 bg-white/10 text-white hover:bg-white/15">
+          <Copy className="mr-2 h-4 w-4" /> Copiar enlace
+        </Button>
+        {connected && (
+          <div className="rounded-xl bg-[#6d4aff] px-4 py-2 text-sm font-semibold">
+            {shortPk(userPublicKey)}
           </div>
-          <div className="flex items-center space-x-4">
-            <Button variant="ghost" onClick={copyClaimUrl}>
-              <Copy className="mr-2 h-4 w-4" />
-              Copy Link
-            </Button>
-            <WalletMultiButton />
-          </div>
-        </div>
-      </header>
+        )}
+      </div>
 
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-12">
-        <div className="max-w-2xl mx-auto">
-          {/* Campaign Info */}
-          <Card className="mb-8">
-            <CardHeader className="text-center">
-              {campaign.imageUrl && (
-                <div className="mx-auto mb-4">
-                  <img
-                    src={campaign.imageUrl}
-                    alt={campaign.name}
-                    className="w-24 h-24 rounded-full object-cover mx-auto"
-                  />
-                </div>
-              )}
-              <CardTitle className="text-2xl">{campaign.name}</CardTitle>
-              {campaign.description && (
-                <CardDescription className="text-base mt-2">
-                  {campaign.description}
-                </CardDescription>
-              )}
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                <div className="flex items-center">
-                  <Calendar className="mr-2 h-4 w-4 text-gray-500" />
-                  <span>{formatDate(campaign.eventDate)}</span>
-                </div>
-                {campaign.location && (
-                  <div className="flex items-center">
-                    <MapPin className="mr-2 h-4 w-4 text-gray-500" />
-                    <span>{campaign.location}</span>
-                  </div>
-                )}
-                <div className="flex items-center">
-                  <Users className="mr-2 h-4 w-4 text-gray-500" />
-                  <span>
-                    {formatNumber(campaign._count?.claims || 0)} claimed
-                    {campaign.maxClaims && ` / ${formatNumber(campaign.maxClaims)}`}
-                  </span>
-                </div>
-                <div className="flex items-center">
-                  <Badge variant={campaign.isActive ? "success" : "secondary"}>
-                    {campaign.isActive ? "Active" : "Inactive"}
-                  </Badge>
-                </div>
-              </div>
-
-              {campaign.externalUrl && (
-                <>
-                  <Separator className="my-4" />
-                  <div className="text-center">
-                    <a
-                      href={campaign.externalUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center text-indigo-600 hover:text-indigo-500"
-                    >
-                      <ExternalLink className="mr-2 h-4 w-4" />
-                      Visit Event Website
-                    </a>
-                  </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Claim Section */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-center">Claim Your POAP</CardTitle>
-              <CardDescription className="text-center">
-                Connect your wallet and claim your Proof of Attendance NFT
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Wallet Connection */}
-              {!connected ? (
-                <div className="text-center">
-                  <p className="text-gray-600 mb-4">
-                    Connect your Solana wallet to claim your POAP
-                  </p>
-                  <WalletMultiButton />
-                </div>
+      {/* Header card */}
+      <div className="rounded-[28px] border border-white/12 bg-white/[0.06] p-5 backdrop-blur-xl">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-start gap-4">
+            <div className="grid h-20 w-20 place-items-center overflow-hidden rounded-2xl border border-white/12 bg-white/10">
+              {campaign.imageUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={campaign.imageUrl} alt={campaign.name} className="h-full w-full object-cover" />
               ) : (
-                <>
-                  {/* Success State */}
-                  {claimState.status === 'success' && claimState.result && (
-                    <Alert variant="default" className="border-green-200 bg-green-50">
-                      <CheckCircle className="h-4 w-4 text-green-600" />
-                      <AlertDescription className="text-green-800">
-                        <div className="space-y-2">
-                          <p className="font-medium">{claimState.result.message}</p>
-                          <div className="space-y-1 text-sm">
-                            <p>
-                              <strong>NFT Mint:</strong>{' '}
-                              <code className="bg-green-100 px-2 py-1 rounded">
-                                {claimState.result.nft.mint}
-                              </code>
-                            </p>
-                            <p>
-                              <a
-                                href={claimState.result.explorerUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center text-green-700 hover:text-green-600"
-                              >
-                                <ExternalLink className="mr-1 h-3 w-3" />
-                                View on Solana Explorer
-                              </a>
-                            </p>
-                          </div>
-                        </div>
-                      </AlertDescription>
-                    </Alert>
-                  )}
-
-                  {/* Error State */}
-                  {claimState.status === 'error' && claimState.error && (
-                    <Alert variant="destructive">
-                      <AlertTriangle className="h-4 w-4" />
-                      <AlertDescription>{claimState.error}</AlertDescription>
-                    </Alert>
-                  )}
-
-                  {/* Claim Form */}
-                  {claimState.status !== 'success' && (
-                    <>
-                      <div className="space-y-4">
-                        <div>
-                          <Label>Connected Wallet</Label>
-                          <div className="mt-1 p-3 bg-gray-50 rounded-lg">
-                            <code className="text-sm">{publicKey?.toString()}</code>
-                          </div>
-                        </div>
-
-                        {campaign.secretCode && (
-                          <div>
-                            <Label htmlFor="secretCode">Secret Code</Label>
-                            <div className="relative">
-                              <Input
-                                id="secretCode"
-                                type="text"
-                                placeholder="Enter the event secret code"
-                                value={secretCode}
-                                onChange={(e) => setSecretCode(e.target.value)}
-                                disabled={claimState.status === 'loading'}
-                                className={`pr-10 ${getCodeInputBorderColor()}`}
-                              />
-                              <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                                {getCodeValidationIcon()}
-                              </div>
-                            </div>
-                            <div className="mt-1">
-                              {getValidationMessage()}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="text-center">
-                        <Button
-                          onClick={handleClaim}
-                          disabled={!isClaimButtonEnabled()}
-                          size="lg"
-                          className="w-full"
-                        >
-                          {claimState.status === 'loading' ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Claiming POAP...
-                            </>
-                          ) : (
-                            <>
-                              <Zap className="mr-2 h-4 w-4" />
-                              Claim POAP (Free)
-                            </>
-                          )}
-                        </Button>
-                        {!campaign.isActive && (
-                          <p className="text-sm text-red-600 mt-2">
-                            This campaign is no longer active
-                          </p>
-                        )}
-                        {campaign.secretCode && codeValidation.status === 'invalid' && (
-                          <p className="text-sm text-red-600 mt-2">
-                            Please enter a valid secret code to enable claiming
-                          </p>
-                        )}
-                        {campaign.secretCode && codeValidation.status === 'unknown' && secretCode && (
-                          <p className="text-sm text-blue-600 mt-2">
-                            Code validation will be performed during claim
-                          </p>
-                        )}
-                      </div>
-                    </>
-                  )}
-                </>
+                <QrCode className="h-8 w-8 text-white/70" />
               )}
+            </div>
 
-              {/* Info */}
-              <div className="text-center text-sm text-gray-500 space-y-1">
-                <p>🔒 This POAP is minted gaslessly - you pay no fees!</p>
-                <p>⚡ Powered by Solana blockchain</p>
-                {campaign.maxClaims && (
-                  <p>
-                    📊 {formatNumber(campaign.claimsRemaining || 0)} POAPs remaining
-                  </p>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-2xl font-semibold">{campaign.name}</h1>
+                <Badge variant={campaign.isActive ? 'success' : 'secondary'}>{statusText}</Badge>
+              </div>
+              {campaign.description && (
+                <p className="mt-1 text-white/80">{campaign.description}</p>
+              )}
+              <div className="mt-3">
+                {campaign.externalUrl && (
+                  <a
+                    href={campaign.externalUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/10 px-3 py-1.5 text-sm hover:bg-white/15"
+                  >
+                    <span>Visitar sitio del evento</span>
+                    <ExternalLink className="h-4 w-4" />
+                  </a>
                 )}
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2 md:w-[520px]">
+            <Chip icon={<CalendarDays className="h-4 w-4" />} text={safeDate(campaign.eventDate)} />
+            <Chip icon={<MapPin className="h-4 w-4" />} text={campaign.location || '—'} />
+            <Chip
+              icon={<Users className="h-4 w-4" />}
+              text={
+                campaign.maxClaims
+                  ? `${Number(campaign.totalClaims || 0)} / ${campaign.maxClaims} · restan ${remaining ?? '∞'}`
+                  : `${Number(campaign.totalClaims || 0)} claims`
+              }
+            />
+          </div>
         </div>
-      </main>
+      </div>
+
+      {/* Claim card */}
+      <div className="mt-6 rounded-[28px] border border-white/12 bg-white/[0.06] p-6 backdrop-blur-xl">
+        <h3 className="text-center text-xl font-semibold">Reclama tu POAP</h3>
+        <p className="mt-1 text-center text-white/70 text-sm">
+          Conecta tu wallet y reclama tu prueba de asistencia (costo 0)
+        </p>
+
+        <div className="mx-auto mt-6 max-w-3xl space-y-4">
+          {!connected ? (
+            <>
+              {isWalletAvailable ? (
+                <Button
+                  onClick={connect}
+                  disabled={connecting}
+                  className="w-full rounded-xl border border-white/15 bg-white/10 text-white hover:bg-white/15"
+                >
+                  {connecting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <WalletIcon className="mr-2 h-4 w-4" />}
+                  {connecting ? 'Conectando…' : 'Conectar wallet'}
+                </Button>
+              ) : (
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <a href="https://phantom.app/download" target="_blank" rel="noreferrer"
+                     className="w-full rounded-xl border border-white/15 bg-white/10 px-4 py-2.5 text-center text-sm hover:bg-white/15">
+                    Instalar Phantom
+                  </a>
+                  <a href="https://solflare.com/download" target="_blank" rel="noreferrer"
+                     className="w-full rounded-xl border border-white/15 bg-white/10 px-4 py-2.5 text-center text-sm hover:bg-white/15">
+                    Instalar Solflare
+                  </a>
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              {/* Wallet */}
+              <label className="block text-sm text-white/70">Wallet conectada</label>
+              <div className="rounded-xl border border-white/12 bg-white/10 px-4 py-3 font-mono">
+                {userPublicKey}
+              </div>
+
+              {/* Secret code */}
+              <div>
+                <div className="flex items-center justify-between">
+                  <label className="block text-sm text-white/70">
+                    Código Secreto
+                    {campaign.requiresSecret ? <span className="ml-1 text-rose-300">*</span> : <span className="ml-1 opacity-60">(opcional)</span>}
+                  </label>
+                </div>
+                <input
+                  value={secretCode}
+                  onChange={(e) => setSecretCode(e.target.value)}
+                  placeholder={campaign.requiresSecret ? 'Ingresa el código de esta campaña' : 'Opcional'}
+                  className="mt-1 w-full rounded-xl border border-white/12 bg-white/10 px-4 py-2.5 outline-none"
+                />
+              </div>
+
+              {/* Claim button */}
+              <Button
+                onClick={onClaim}
+                disabled={!canClaim || claiming}
+                className="mt-1 w-full rounded-xl border border-emerald-500/30 bg-emerald-500/20 text-emerald-100 hover:bg-emerald-500/30"
+              >
+                {claiming ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Zap className="mr-2 h-4 w-4" />}
+                {claiming ? 'Reclamando…' : '⚡ Claim POAP (Free)'}
+              </Button>
+
+              {/* legend */}
+              <div className="mt-2 text-center text-sm text-white/70">
+                <span className="inline-flex items-center gap-1">
+                  <span className="inline-block h-3.5 w-3.5 rounded-sm border border-white/20" /> Gasless mint en Solana
+                </span>
+              </div>
+
+              {/* progress */}
+              {campaign.maxClaims ? (
+                <>
+                  <div className="mt-4 h-2.5 w-full overflow-hidden rounded-full bg-white/10">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-emerald-400/70 to-emerald-600/70"
+                      style={{ width: `${progressPct}%` }}
+                    />
+                  </div>
+                  <div className="mt-2 text-center text-sm text-white/70">
+                    Quedan {remaining ?? '∞'} POAP(s)
+                  </div>
+                </>
+              ) : null}
+
+              {/* Disconnect */}
+              <Button
+                onClick={disconnect}
+                variant="outline"
+                className="mt-3 w-full rounded-xl border-white/15 bg-white/5 text-white hover:bg-white/10"
+              >
+                Desconectar
+              </Button>
+            </>
+          )}
+        </div>
+      </div>
     </div>
   )
+}
+
+/* -------------------- Helpers UI -------------------- */
+function Chip({ icon, text }: { icon: React.ReactNode; text: React.ReactNode }) {
+  return (
+    <div className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/8 px-3 py-2 text-sm">
+      {icon}
+      <span className="truncate">{text}</span>
+    </div>
+  )
+}
+
+function shortPk(pk?: string | null) {
+  if (!pk) return ''
+  return `${pk.slice(0, 3)}…${pk.slice(-3)}`
+}
+
+function safeDate(d?: string | null) {
+  if (!d) return '—'
+  const date = new Date(d)
+  return isNaN(date.getTime()) ? '—' : date.toLocaleDateString()
 }
